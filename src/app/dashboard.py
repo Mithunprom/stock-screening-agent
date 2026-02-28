@@ -273,6 +273,103 @@ def _portfolio_view(snapshot: dict) -> pd.DataFrame:
     return positions_df.sort_values("unrealized_pnl", ascending=False)
 
 
+def _morning_module_assessment() -> pd.DataFrame:
+    return pd.DataFrame(
+        [
+            {"module": "Equity Opportunity Screen", "fit": "Ready now", "run_time": "Daily morning", "notes": "Already aligned with the current signal stack and news-driven ranking."},
+            {"module": "Technical Setup Brief", "fit": "Ready now", "run_time": "Daily morning", "notes": "We already have price history, volatility, invalidation levels, and trend proxies."},
+            {"module": "Portfolio Risk Review", "fit": "Ready now", "run_time": "Daily morning", "notes": "Works well using paper holdings, exposure, drawdown state, and held-name alerts."},
+            {"module": "Macro + Sector Rotation", "fit": "Good partial fit", "run_time": "Daily morning", "notes": "Can infer regime from SPY/QQQ, volatility, catalysts, and sector momentum, but not a full macro desk model."},
+            {"module": "Pre-Earnings Brief", "fit": "Good partial fit", "run_time": "Daily morning", "notes": "Useful when a ticker has earnings/news catalysts, but earnings calendars and consensus data are still lightweight."},
+            {"module": "Competitive Landscape", "fit": "Partial fit", "run_time": "On demand or daily for top sectors", "notes": "Possible as a qualitative sector comparison, but not deep Bain-style industry research without richer company fundamentals."},
+            {"module": "DCF Valuation", "fit": "Not reliable yet", "run_time": "On demand only", "notes": "Needs robust financial statements, estimate history, and capital structure data before it should be trusted."},
+            {"module": "Dividend Portfolio Lab", "fit": "Not reliable yet", "run_time": "Daily or weekly", "notes": "Needs dividend history, payout ratios, and cash-flow coverage data beyond the current free stack."},
+            {"module": "Portfolio Construction Blueprint", "fit": "Good future fit", "run_time": "Daily or profile refresh", "notes": "Makes sense if we add your risk profile, benchmark, and contribution schedule as app inputs."},
+            {"module": "RSU / Equity Compensation Planner", "fit": "Separate workflow", "run_time": "On demand", "notes": "Your Walmart screenshots belong in a dedicated compensation/tax tab, not the trading signal tab."},
+        ]
+    )
+
+
+def _sector_brief(recommendations_df: pd.DataFrame) -> pd.DataFrame:
+    if recommendations_df.empty:
+        return pd.DataFrame()
+    brief = (
+        recommendations_df.groupby("sector", dropna=False)
+        .agg(
+            avg_opportunity=("opportunity_score", "mean"),
+            avg_confidence=("fused_confidence", "mean"),
+            names=("ticker", lambda x: ", ".join(x.head(3))),
+            risky_share=("risk_label", lambda x: (x == "RISKY").mean()),
+        )
+        .reset_index()
+        .sort_values("avg_opportunity", ascending=False)
+    )
+    return brief
+
+
+def _macro_brief(snapshot: dict, recommendations_df: pd.DataFrame) -> list[str]:
+    market = snapshot["market_context"]
+    notes = [
+        f"SPY is {market['spy_ret_1d']:+.2%} on the day and QQQ is {market['qqq_ret_1d']:+.2%}, which the app currently classifies as `{market['risk_regime']}`.",
+        f"Short-horizon realized volatility proxies are {market['spy_rv_5d']:.1%} for SPY and {market['qqq_rv_5d']:.1%} for QQQ.",
+    ]
+    if not recommendations_df.empty and "sector" in recommendations_df:
+        top_sector = recommendations_df.groupby("sector")["opportunity_score"].mean().sort_values(ascending=False).head(1)
+        if not top_sector.empty:
+            notes.append(f"Highest average opportunity score currently sits in `{top_sector.index[0]}`, which is the closest thing we have to a sector-rotation signal in the free-data stack.")
+    return notes
+
+
+def _technical_brief(watchlist_df: pd.DataFrame) -> pd.DataFrame:
+    if watchlist_df.empty:
+        return pd.DataFrame()
+    rows = []
+    for _, row in watchlist_df.head(5).iterrows():
+        close = float(row.get("close", 0))
+        invalidation = float(row.get("invalidation_price", close))
+        downside = (close / invalidation - 1) if invalidation else 0.0
+        rows.append(
+            {
+                "ticker": row["ticker"],
+                "action": row["action"],
+                "trend_view": "Constructive" if row.get("fused_confidence", 0) >= 0.6 else "Mixed",
+                "risk_to_invalidation": f"{downside:.1%}",
+                "hold_horizon": row.get("hold_horizon", "1-5 days"),
+                "technical_note": row.get("why_short", row.get("why", "")),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def _earnings_brief(recommendations_df: pd.DataFrame) -> pd.DataFrame:
+    if recommendations_df.empty:
+        return pd.DataFrame()
+    focus = recommendations_df[
+        recommendations_df["catalyst"].fillna("").str.contains("earnings|guidance|analyst action", case=False, regex=True)
+    ].copy()
+    if focus.empty:
+        sort_cols = ["fused_confidence"]
+        ascending = [False]
+        if "opportunity_score" in recommendations_df.columns:
+            sort_cols = ["opportunity_score", "fused_confidence"]
+            ascending = [False, False]
+        focus = recommendations_df.sort_values(sort_cols, ascending=ascending).head(5).copy()
+    keep_cols = [col for col in ["ticker", "catalyst", "fused_confidence", "action", "what_changes"] if col in focus.columns]
+    return focus[keep_cols].head(5)
+
+
+def _portfolio_risk_brief(positions_df: pd.DataFrame, portfolio_metrics: dict) -> list[str]:
+    notes = [
+        f"Current equity is ${portfolio_metrics['equity']:.2f} with gross exposure at {portfolio_metrics['gross_exposure_pct']:.2%}.",
+        f"Intraday drawdown is {portfolio_metrics['intraday_drawdown']:.2%}; kill-switch is {'active' if portfolio_metrics['kill_switch_active'] else 'inactive'}.",
+    ]
+    if not positions_df.empty and "risk_label" in positions_df:
+        risky = positions_df[positions_df["risk_label"].fillna("") == "RISKY"]
+        if not risky.empty:
+            notes.append(f"Held names currently marked RISKY: {', '.join(risky['ticker'].tolist())}.")
+    return notes
+
+
 def render_app(snapshot: dict) -> None:
     if st is None:  # pragma: no cover
         raise RuntimeError("streamlit is required to render the dashboard. Install requirements.txt first.")
@@ -416,7 +513,7 @@ def render_app(snapshot: dict) -> None:
             unsafe_allow_html=True,
         )
 
-    tabs = st.tabs(["Overview", "Best Setups", "All Ideas", "Portfolio", "Model Governance", "Raw Snapshot"])
+    tabs = st.tabs(["Overview", "Morning Research", "Best Setups", "All Ideas", "Portfolio", "Model Governance", "Raw Snapshot"])
 
     with tabs[0]:
         st.subheader("Beginner Overview")
@@ -443,6 +540,52 @@ def render_app(snapshot: dict) -> None:
             st.dataframe(pd.DataFrame(hourly_state["deltas"]).head(5), use_container_width=True, hide_index=True)
 
     with tabs[1]:
+        st.subheader("Morning Research Center")
+        st.caption("This is the right place to add the richer daily briefs from your screenshots. Some are production-ready now, some need better data before they should be trusted.")
+
+        fit_df = _morning_module_assessment()
+        st.markdown("**What belongs in the app**")
+        st.dataframe(fit_df, use_container_width=True, hide_index=True)
+
+        research_cols = st.columns(2)
+        with research_cols[0]:
+            st.markdown('<div class="section-card">', unsafe_allow_html=True)
+            st.markdown("**Macro + Sector Brief**")
+            for note in _macro_brief(snapshot, recommendations_df):
+                st.markdown(f"- {note}")
+            sector_df = _sector_brief(recommendations_df)
+            if not sector_df.empty:
+                st.dataframe(sector_df.head(6), use_container_width=True, hide_index=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+        with research_cols[1]:
+            st.markdown('<div class="section-card">', unsafe_allow_html=True)
+            st.markdown("**Portfolio Risk Review**")
+            for note in _portfolio_risk_brief(positions_df, portfolio_metrics):
+                st.markdown(f"- {note}")
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        lower_cols = st.columns(2)
+        with lower_cols[0]:
+            st.markdown("**Technical Setup Brief**")
+            tech_df = _technical_brief(watchlist_df)
+            if tech_df.empty:
+                st.write("No technical brief available.")
+            else:
+                st.dataframe(tech_df, use_container_width=True, hide_index=True)
+        with lower_cols[1]:
+            st.markdown("**Earnings / Catalyst Radar**")
+            earnings_df = _earnings_brief(recommendations_df)
+            if earnings_df.empty:
+                st.write("No earnings-oriented names are currently flagged.")
+            else:
+                st.dataframe(earnings_df, use_container_width=True, hide_index=True)
+
+        st.info(
+            "Best next additions from your screenshots: 1) Morning macro brief, 2) technical setup brief, 3) portfolio risk report, 4) pre-earnings brief. "
+            "DCF, dividend analysis, and deep competitive landscape should wait until we wire in better fundamentals data."
+        )
+
+    with tabs[2]:
         st.subheader("Best Setups")
         chart_names = watchlist_df["ticker"].head(5).tolist() if not watchlist_df.empty else []
         selected_chart_names = st.multiselect(
@@ -477,7 +620,7 @@ def render_app(snapshot: dict) -> None:
                     unsafe_allow_html=True,
                 )
 
-    with tabs[2]:
+    with tabs[3]:
         st.subheader("All Ideas")
         filter_col1, filter_col2, filter_col3, filter_col4 = st.columns([1.2, 1.2, 1.2, 2])
         actions = ["All"] + sorted(recommendations_df["action"].dropna().unique().tolist())
@@ -510,7 +653,7 @@ def render_app(snapshot: dict) -> None:
             hide_index=True,
         )
 
-    with tabs[3]:
+    with tabs[4]:
         st.subheader("Paper Portfolio")
         st.caption("Refresh State or wait for the next hourly job to update marks, unrealized P&L, and exit warnings for these paper positions.")
         buy_cols = st.columns([1.4, 1, 1, 1])
@@ -553,7 +696,7 @@ def render_app(snapshot: dict) -> None:
             pnl_cols[2].metric("Avg Held Return", f"{positions_df['pnl_pct'].mean():+.2%}")
         st.json(portfolio_state)
 
-    with tabs[4]:
+    with tabs[5]:
         st.subheader("Model Cards")
         model_cards = snapshot["model_cards"]
         governance_cols = st.columns(4)
@@ -562,7 +705,7 @@ def render_app(snapshot: dict) -> None:
         governance_cols[2].json(model_cards.get("explainability", {}))
         governance_cols[3].json(model_cards["governance"])
 
-    with tabs[5]:
+    with tabs[6]:
         st.subheader("Raw Snapshot")
         st.code(json.dumps(snapshot, indent=2, default=str), language="json")
 
