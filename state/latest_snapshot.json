@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-02-28T10:37:33.754522-08:00",
+  "as_of": "2026-02-28T10:42:15.073451-08:00",
   "market_context": {
     "qqq_last": 795.91,
     "qqq_ret_1d": 0.01078204770008373,
@@ -58,7 +58,7 @@
       "model": "cross_sectional_factor",
       "sector_neutralized": true,
       "validation": {
-        "avg_cost_bps": 5.56179775280899,
+        "avg_cost_bps": 5.561797752808989,
         "gross_long_short_return": 0.004371286506692257,
         "hit_rate": 0.5617977528089888,
         "ic": 0.014538812991827525,
@@ -86,7 +86,7 @@
     },
     "governance": {
       "drift_check": 0.07159398756316658,
-      "last_update": "2026-02-28T10:37:33.754522-08:00",
+      "last_update": "2026-02-28T10:42:15.073451-08:00",
       "leakage_guard": "strict trailing features and shifted next-period targets",
       "missingness": {
         "catalyst": 0.5714285714285714,
