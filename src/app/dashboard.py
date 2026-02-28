@@ -17,6 +17,7 @@ except Exception:  # pragma: no cover
     st = None
 
 from src.config import get_settings
+from src.data.market_data import MarketDataAdapter
 from src.pipelines.common import PipelineArtifacts, build_pipeline_artifacts, build_tracking_snapshot
 from src.portfolio.paper_portfolio import PaperPortfolio
 from src.state.store import SharedStateStore
@@ -213,6 +214,65 @@ def _normalize_snapshot(snapshot: dict) -> dict:
     return snapshot
 
 
+def _column_guide() -> pd.DataFrame:
+    return pd.DataFrame(
+        [
+            {"column": "action", "meaning": "Suggested next step from the paper-trading engine.", "values": "CONSIDER ENTRY, WATCH, HOLD, CONSIDER EXIT"},
+            {"column": "conviction_label", "meaning": "How strong the combined model and news setup is.", "values": "Low, Developing, Strong, High"},
+            {"column": "opportunity_score", "meaning": "Overall ranking score balancing edge, catalyst strength, liquidity, and risk penalties.", "values": "Higher is better"},
+            {"column": "fused_confidence", "meaning": "Ensemble confidence after blending factor, time-series, baseline, and event signals.", "values": "0% to 100%"},
+            {"column": "risk_label", "meaning": "Current risk block status for new paper entries.", "values": "OK, RISKY"},
+            {"column": "hold_horizon", "meaning": "Estimated paper-trade holding period based on catalyst type, conviction, and volatility regime.", "values": "1-3 days, 1-5 days, 3-10 days"},
+            {"column": "invalidation_price", "meaning": "Price level that weakens the setup enough to stop respecting the current thesis.", "values": "Price threshold"},
+            {"column": "catalyst", "meaning": "Most relevant event/news driver attached to the stock right now.", "values": "earnings, analyst action, company news, macro shock, geopolitical shock"},
+            {"column": "xsec_score", "meaning": "Cross-sectional factor score versus the rest of the universe after neutralization.", "values": "Higher positive is stronger"},
+            {"column": "ts_score", "meaning": "Time-series directional model view for that ticker alone.", "values": "Positive favors upside"},
+            {"column": "vol_risk_score", "meaning": "Volatility/risk desk score used for sizing and risk blocks.", "values": "Lower is calmer, higher is hotter"},
+        ]
+    )
+
+
+def _value_footnotes() -> list[str]:
+    return [
+        "`CONSIDER ENTRY`: the model stack sees a favorable paper-trade setup and the ticker is not risk-blocked.",
+        "`WATCH`: interesting name, but not strong enough or not safe enough to size yet.",
+        "`HOLD`: keep tracking an existing paper position or stay patient if no fresh edge is present.",
+        "`CONSIDER EXIT`: thesis weakened, invalidation hit, or risk controls now override the setup.",
+        "`Low` conviction: weak edge or conflicting signals.",
+        "`Developing` conviction: setup is improving but not yet decisive.",
+        "`Strong` conviction: multiple model families and/or news agree.",
+        "`High` conviction: strongest current names after risk penalties.",
+        "`RISKY`: new entries are blocked today even if the name still looks interesting.",
+    ]
+
+
+def _build_price_chart_frame(snapshot: dict, tickers: list[str]) -> pd.DataFrame:
+    settings = get_settings()
+    market = MarketDataAdapter(settings)
+    selected = [ticker for ticker in tickers if ticker]
+    if not selected:
+        return pd.DataFrame()
+    history = market.fetch_daily_history(selected, lookback_days=60)
+    if history.empty:
+        return pd.DataFrame()
+    chart = history[history["ticker"].isin(selected)][["date", "ticker", "close"]].copy()
+    chart["date"] = pd.to_datetime(chart["date"])
+    return chart.pivot_table(index="date", columns="ticker", values="close").sort_index()
+
+
+def _portfolio_view(snapshot: dict) -> pd.DataFrame:
+    positions_df = pd.DataFrame(snapshot.get("positions", []))
+    recommendations_df = pd.DataFrame(snapshot.get("recommendations", []))
+    if positions_df.empty:
+        return positions_df
+    positions_df = positions_df.copy()
+    positions_df["pnl_pct"] = ((positions_df["mark"] / positions_df["avg_entry"]) - 1).fillna(0.0)
+    if not recommendations_df.empty:
+        merge_cols = ["ticker", "action", "conviction_label", "hold_horizon", "risk_label", "invalidation_price"]
+        positions_df = positions_df.merge(recommendations_df[merge_cols], on="ticker", how="left")
+    return positions_df.sort_values("unrealized_pnl", ascending=False)
+
+
 def render_app(snapshot: dict) -> None:
     if st is None:  # pragma: no cover
         raise RuntimeError("streamlit is required to render the dashboard. Install requirements.txt first.")
@@ -268,6 +328,7 @@ def render_app(snapshot: dict) -> None:
     portfolio_metrics = snapshot["portfolio_metrics"]
     portfolio_state = snapshot["portfolio_state"]
     hourly_state = snapshot.get("hourly_state", {"deltas": [], "as_of": None})
+    column_guide = _column_guide()
 
     col1, col2, col3, col4, col5 = st.columns(5)
     col1.metric("SPY 1d", f"{market['spy_ret_1d']:+.2%}")
@@ -278,7 +339,7 @@ def render_app(snapshot: dict) -> None:
 
     recommendations_df = pd.DataFrame(snapshot["recommendations"])
     watchlist_df = pd.DataFrame(snapshot["watchlist"])
-    positions_df = pd.DataFrame(snapshot["positions"])
+    positions_df = _portfolio_view(snapshot)
 
     st.subheader("Start Here")
     guide_cols = st.columns(3)
@@ -372,12 +433,27 @@ def render_app(snapshot: dict) -> None:
             - Ignore `Model Governance` unless you want the technical details.
             """,
         )
+        with st.expander("Field Guide"):
+            st.caption("Use this as a footnote reference when the app uses model language.")
+            st.dataframe(column_guide, use_container_width=True, hide_index=True)
+            for note in _value_footnotes():
+                st.markdown(f"- {note}")
         if hourly_state.get("deltas"):
             st.markdown("**Latest notable changes**")
             st.dataframe(pd.DataFrame(hourly_state["deltas"]).head(5), use_container_width=True, hide_index=True)
 
     with tabs[1]:
         st.subheader("Best Setups")
+        chart_names = watchlist_df["ticker"].head(5).tolist() if not watchlist_df.empty else []
+        selected_chart_names = st.multiselect(
+            "Time-Series Plot",
+            options=watchlist_df["ticker"].tolist(),
+            default=chart_names,
+            help="Plot recent daily closes for the recommended names you want to compare.",
+        )
+        chart_frame = _build_price_chart_frame(snapshot, selected_chart_names)
+        if not chart_frame.empty:
+            st.line_chart(chart_frame, use_container_width=True)
         if watchlist_df.empty:
             st.write("No watchlist names available.")
         else:
@@ -391,7 +467,7 @@ def render_app(snapshot: dict) -> None:
                             <span class="pill risk-pill">{row['risk_label']}</span>
                         </div>
                         <h3 style="margin-bottom:0.3rem;">{row['ticker']} · {row.get('sector', 'Other')}</h3>
-                        <p class="guide-copy"><strong>Opportunity score:</strong> {row.get('opportunity_score', 0):.2f}</p>
+                        <p class="guide-copy"><strong>Opportunity score:</strong> {row.get('opportunity_score', 0):.2f} | <strong>Hold horizon:</strong> {row.get('hold_horizon', '1-5 days')}</p>
                         <p style="margin-bottom:0.5rem;">{row['why']}</p>
                         <p><strong>Invalidation:</strong> {row['invalidation_text']}</p>
                         <p><strong>What changes:</strong> {row['what_changes']}</p>
@@ -421,14 +497,60 @@ def render_app(snapshot: dict) -> None:
         if search:
             filtered = filtered[filtered["ticker"].str.contains(search.upper(), na=False)]
         filtered = filtered.sort_values(["opportunity_score", "fused_confidence"], ascending=[False, False])
-        st.dataframe(filtered, use_container_width=True, hide_index=True)
+        st.dataframe(
+            filtered.rename(
+                columns={
+                    "close": "last_price",
+                    "fused_confidence": "ensemble_confidence",
+                    "xsec_score": "factor_score",
+                    "ts_score": "time_series_score",
+                }
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
 
     with tabs[3]:
         st.subheader("Paper Portfolio")
+        st.caption("Refresh State or wait for the next hourly job to update marks, unrealized P&L, and exit warnings for these paper positions.")
+        buy_cols = st.columns([1.4, 1, 1, 1])
+        buy_ticker = buy_cols[0].selectbox(
+            "Open / Update Paper Position",
+            options=recommendations_df["ticker"].tolist() if not recommendations_df.empty else [],
+            index=0 if not recommendations_df.empty else None,
+            help="This does not place a real trade. It just records a paper position inside the app.",
+        )
+        default_price = 0.0
+        if buy_ticker and not recommendations_df.empty:
+            current_row = recommendations_df[recommendations_df["ticker"] == buy_ticker].head(1)
+            if not current_row.empty:
+                default_price = float(current_row.iloc[0]["close"])
+        buy_qty = buy_cols[1].number_input("Quantity", min_value=0.0, value=1.0, step=1.0, key="portfolio_buy_qty")
+        buy_entry = buy_cols[2].number_input("Entry Price", min_value=0.0, value=float(default_price), step=0.01, key="portfolio_buy_entry")
+        trigger_buy = buy_cols[3].button("Save Paper Trade", use_container_width=True)
+        if trigger_buy and buy_ticker:
+            settings = get_settings()
+            portfolio = PaperPortfolio(settings)
+            portfolio.upsert_position(buy_ticker, buy_qty, buy_entry)
+            load_snapshot.clear()
+            st.rerun()
         if positions_df.empty:
             st.write("No active paper positions.")
         else:
             st.dataframe(positions_df, use_container_width=True, hide_index=True)
+            held_chart_names = st.multiselect(
+                "Held Names Chart",
+                options=positions_df["ticker"].tolist(),
+                default=positions_df["ticker"].tolist()[:4],
+                help="Track how your held paper positions have moved over recent sessions.",
+            )
+            held_chart = _build_price_chart_frame(snapshot, held_chart_names)
+            if not held_chart.empty:
+                st.line_chart(held_chart, use_container_width=True)
+            pnl_cols = st.columns(3)
+            pnl_cols[0].metric("Unrealized P&L", f"${positions_df['unrealized_pnl'].sum():.2f}")
+            pnl_cols[1].metric("Held Names", int(len(positions_df)))
+            pnl_cols[2].metric("Avg Held Return", f"{positions_df['pnl_pct'].mean():+.2%}")
         st.json(portfolio_state)
 
     with tabs[4]:
