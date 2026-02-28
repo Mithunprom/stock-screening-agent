@@ -17,12 +17,28 @@ def render_table(frame: pd.DataFrame, columns: list[str]) -> str:
 
 def render_daily_email(as_of: datetime, market_context: dict, screen: pd.DataFrame, watchlist: pd.DataFrame) -> tuple[str, str]:
     subject = f"Daily Opportunity + Catalyst Screen (Top 20) — {as_of:%Y-%m-%d}"
+    top_pick = watchlist.head(1)
     lines = [
         "## Market Context",
         f"SPY last: {market_context.get('spy_last', 0):.2f}, 1d: {market_context.get('spy_ret_1d', 0):+.2%}, 5d realized vol: {market_context.get('spy_rv_5d', 0):.1%}",
         f"QQQ last: {market_context.get('qqq_last', 0):.2f}, 1d: {market_context.get('qqq_ret_1d', 0):+.2%}, 5d realized vol: {market_context.get('qqq_rv_5d', 0):.1%}",
         f"Risk regime: {market_context.get('risk_regime', 'Moderate')}",
         "",
+    ]
+    if not top_pick.empty:
+        row = top_pick.iloc[0]
+        lines.extend(
+            [
+                "## Top Pick of the Day",
+                f"**{row['ticker']} — {row['action']}**",
+                f"Why this is the single best setup right now: {row['why']}",
+                f"Invalidation: {row['invalidation_text']}",
+                f"What would change the view: {row['what_changes']}",
+                "",
+            ]
+        )
+    lines.extend(
+        [
         "## Top 20 Opportunity Screen",
         render_table(
             screen,
@@ -42,7 +58,8 @@ def render_daily_email(as_of: datetime, market_context: dict, screen: pd.DataFra
         ),
         "",
         "## Watchlist Highlights",
-    ]
+        ]
+    )
     for _, row in watchlist.iterrows():
         lines.extend(
             [
