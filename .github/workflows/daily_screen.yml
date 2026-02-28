@@ -3,8 +3,10 @@ name: Daily Screen
 on:
   workflow_dispatch:
   schedule:
-    # 15:00 UTC = 7:00 AM PT during standard time. Adjust if you want DST-perfect timing.
-    - cron: "0 15 * * 1-5"
+    # 15:00 UTC = 7:00 AM PT during Pacific Standard Time (roughly November to March).
+    - cron: "0 15 * 1,2,3,11,12 1-5"
+    # 14:00 UTC = 7:00 AM PT during Pacific Daylight Time (roughly April to October).
+    - cron: "0 14 * 4,5,6,7,8,9,10 1-5"
 
 jobs:
   run-daily-screen:

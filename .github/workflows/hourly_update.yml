@@ -3,8 +3,10 @@ name: Hourly Update
 on:
   workflow_dispatch:
   schedule:
-    # Every hour on weekdays. The pipeline itself exits outside NYSE market hours and holidays.
-    - cron: "0 * * * 1-5"
+    # Narrow UTC windows covering NYSE market hours across Pacific Standard Time.
+    - cron: "0 14-21 * 1,2,3,11,12 1-5"
+    # Narrow UTC windows covering NYSE market hours across Pacific Daylight Time.
+    - cron: "0 13-20 * 4,5,6,7,8,9,10 1-5"
 
 jobs:
   run-hourly-update:
