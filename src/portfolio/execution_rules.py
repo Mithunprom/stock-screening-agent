@@ -12,6 +12,12 @@ class ExecutionRules:
     settings: AppConfig
 
     def suggested_action(self, row: pd.Series, kill_switch_active: bool) -> str:
+        if row.get("held_position", False):
+            if row.get("close", 0) <= row.get("invalidation_price", float("-inf")):
+                return "CONSIDER EXIT"
+            if row.get("fused_confidence", 0) < 0.45 or row.get("risk_blocked", False):
+                return "CONSIDER EXIT"
+            return "HOLD"
         if row.get("risk_blocked", False):
             return "WATCH"
         if kill_switch_active:
@@ -21,4 +27,3 @@ class ExecutionRules:
         if row.get("fused_confidence", 0) >= 0.52:
             return "WATCH"
         return "HOLD"
-

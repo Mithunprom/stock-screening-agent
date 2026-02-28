@@ -9,8 +9,18 @@ from src.utils.time import format_hour_et
 
 def render_table(frame: pd.DataFrame, columns: list[str]) -> str:
     display = frame[columns].copy()
+    formatters = {
+        "close": lambda x: f"${x:,.2f}",
+        "opportunity_score": lambda x: f"{x:.2f}",
+        "fused_confidence": lambda x: f"{x:.0%}",
+        "xsec_score": lambda x: f"{x:+.2f}",
+        "ts_score": lambda x: f"{x:+.2f}",
+        "vol_risk_score": lambda x: f"{x:.2f}",
+    }
     for col in display.columns:
-        if pd.api.types.is_float_dtype(display[col]):
+        if col in formatters:
+            display[col] = display[col].map(lambda x: formatters[col](x) if pd.notna(x) else "")
+        elif pd.api.types.is_float_dtype(display[col]):
             display[col] = display[col].map(lambda x: f"{x:.2f}" if pd.notna(x) else "")
     return display.to_markdown(index=False)
 
@@ -32,11 +42,26 @@ def render_daily_email(as_of: datetime, market_context: dict, screen: pd.DataFra
                 "## Top Pick of the Day",
                 f"**{row['ticker']} — {row['action']}**",
                 f"Why this is the single best setup right now: {row['why']}",
+                f"Suggested hold horizon: {row.get('hold_horizon', '1-5 days')}",
                 f"Invalidation: {row['invalidation_text']}",
                 f"What would change the view: {row['what_changes']}",
                 "",
             ]
         )
+    top_three = watchlist.head(3)
+    if not top_three.empty:
+        lines.extend(["## Top 3 Setups", ""])
+        for idx, (_, row) in enumerate(top_three.iterrows(), start=1):
+            lines.extend(
+                [
+                    f"### {idx}. {row['ticker']} — {row['action']}",
+                    f"Hold horizon: {row.get('hold_horizon', '1-5 days')}",
+                    f"Why: {row['why']}",
+                    f"Invalidation: {row['invalidation_text']}",
+                    f"What would change the view: {row['what_changes']}",
+                    "",
+                ]
+            )
     lines.extend(
         [
         "## Top 20 Opportunity Screen",
@@ -49,6 +74,7 @@ def render_daily_email(as_of: datetime, market_context: dict, screen: pd.DataFra
                 "catalyst",
                 "opportunity_score",
                 "conviction_label",
+                "hold_horizon",
                 "fused_confidence",
                 "xsec_score",
                 "ts_score",
@@ -89,6 +115,12 @@ def render_hourly_email(as_of: datetime, deltas: pd.DataFrame, risk_summary: dic
     if deltas.empty:
         lines.append("No material signal deltas this hour.")
     else:
+        if "action" in deltas.columns and (deltas["action"] == "CONSIDER EXIT").any():
+            exit_rows = deltas[deltas["action"] == "CONSIDER EXIT"]
+            lines.append("### Exit Watch")
+            lines.append(render_table(exit_rows, ["ticker", "action", "risk_label", "change_reason"]))
+            lines.append("")
+            lines.append("### Other Material Changes")
         lines.append(
             render_table(
                 deltas,

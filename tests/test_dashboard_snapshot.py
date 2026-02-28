@@ -17,3 +17,16 @@ def test_dashboard_snapshot_contains_recommendations_and_portfolio(tmp_path) -> 
     assert "recommendations" in snapshot
     assert "portfolio_metrics" in snapshot
     assert isinstance(snapshot["recommendations"], list)
+
+
+def test_portfolio_position_upsert_and_remove(tmp_path) -> None:
+    settings = get_settings()
+    settings.state_dir = tmp_path
+    settings.cache_dir = tmp_path / "cache"
+    settings.ensure_dirs()
+
+    portfolio = PaperPortfolio(settings)
+    portfolio.upsert_position("AAPL", 3, 150.0)
+    assert "AAPL" in portfolio.state.positions
+    portfolio.remove_position("AAPL")
+    assert "AAPL" not in portfolio.state.positions

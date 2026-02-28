@@ -31,6 +31,7 @@ if st is not None:  # pragma: no branch
 
 
 def _load_snapshot_impl() -> dict:
+    _apply_streamlit_secret_env()
     settings = get_settings()
     store = SharedStateStore(settings)
     shared_snapshot = store.read_json("latest_snapshot", None)
@@ -49,6 +50,18 @@ if st is not None:
     load_snapshot = st.cache_data(ttl=900, show_spinner=False)(_load_snapshot_impl)
 else:
     load_snapshot = _load_snapshot_impl
+
+
+def _apply_streamlit_secret_env() -> None:
+    if st is None:
+        return
+    for key in ["APP_USERNAME", "APP_PASSWORD", "GITHUB_STATE_REPO", "GITHUB_STATE_BRANCH", "GITHUB_STATE_TOKEN"]:
+        try:
+            value = st.secrets.get(key)
+        except Exception:
+            value = None
+        if value:
+            os.environ[key] = str(value)
 
 
 def get_app_credentials() -> tuple[str, str]:
@@ -192,6 +205,8 @@ def _normalize_snapshot(snapshot: dict) -> dict:
             watchlist["conviction_label"] = "Developing"
         if "opportunity_score" not in watchlist.columns:
             watchlist["opportunity_score"] = watchlist.get("fused_confidence", 0)
+        if "hold_horizon" not in watchlist.columns:
+            watchlist["hold_horizon"] = "1-5 days"
         snapshot["watchlist"] = watchlist.to_dict(orient="records")
 
     snapshot.setdefault("hourly_state", {"deltas": [], "as_of": None})
@@ -223,6 +238,31 @@ def render_app(snapshot: dict) -> None:
             st.rerun()
     with control_col2:
         st.caption("Refresh State reloads the latest shared snapshot from the repository state branch.")
+
+    with st.expander("Manage My Holdings"):
+        st.caption("These paper holdings are shared with the scheduled jobs, so hourly emails can warn on names you are tracking.")
+        positions_df = pd.DataFrame(snapshot.get("positions", []))
+        if not positions_df.empty:
+            st.dataframe(positions_df, use_container_width=True, hide_index=True)
+        with st.form("add_position_form"):
+            form_cols = st.columns(3)
+            ticker = form_cols[0].text_input("Ticker", "")
+            quantity = form_cols[1].number_input("Quantity", min_value=0.0, value=0.0, step=1.0)
+            avg_entry = form_cols[2].number_input("Average Entry", min_value=0.0, value=0.0, step=0.01)
+            submitted = st.form_submit_button("Save Position")
+            if submitted and ticker:
+                settings = get_settings()
+                portfolio = PaperPortfolio(settings)
+                portfolio.upsert_position(ticker, quantity, avg_entry)
+                load_snapshot.clear()
+                st.rerun()
+        remove_ticker = st.text_input("Remove Ticker", "")
+        if st.button("Remove Position", use_container_width=False) and remove_ticker:
+            settings = get_settings()
+            portfolio = PaperPortfolio(settings)
+            portfolio.remove_position(remove_ticker)
+            load_snapshot.clear()
+            st.rerun()
 
     market = snapshot["market_context"]
     portfolio_metrics = snapshot["portfolio_metrics"]

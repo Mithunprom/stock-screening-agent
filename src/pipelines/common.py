@@ -77,6 +77,8 @@ def build_pipeline_artifacts(settings: AppConfig) -> PipelineArtifacts:
 
     portfolio = PaperPortfolio(settings)
     portfolio_metrics = portfolio.mark_to_market(dict(zip(latest["ticker"], latest["close"])), as_of)
+    held_names = set(portfolio.state.positions.keys())
+    latest["held_position"] = latest["ticker"].isin(held_names)
     rules = ExecutionRules(settings)
     latest["action"] = latest.apply(lambda row: rules.suggested_action(row, portfolio_metrics["kill_switch_active"]), axis=1)
 
@@ -89,6 +91,7 @@ def build_pipeline_artifacts(settings: AppConfig) -> PipelineArtifacts:
         lambda row: f"Close below {row['invalidation_price']:.2f} (about {settings.risk.atr_multiple:.1f}x ATR below reference).",
         axis=1,
     )
+    latest["hold_horizon"] = latest.apply(_hold_horizon, axis=1)
 
     paper_actions = portfolio.apply_signals(latest.nlargest(5, "fused_confidence"), as_of)
 
@@ -133,6 +136,7 @@ def build_tracking_snapshot(artifacts: PipelineArtifacts, portfolio: PaperPortfo
         "close",
         "opportunity_score",
         "conviction_label",
+        "hold_horizon",
         "fused_confidence",
         "risk_label",
         "rv_5d",
@@ -157,6 +161,7 @@ def build_tracking_snapshot(artifacts: PipelineArtifacts, portfolio: PaperPortfo
             "action",
             "opportunity_score",
             "conviction_label",
+            "hold_horizon",
             "fused_confidence",
             "risk_label",
             "close",
@@ -249,3 +254,15 @@ def _caveats(row: pd.Series) -> str:
     if row.get("headline_count", 0) == 0:
         caveats.append("public news coverage sparse")
     return ", ".join(caveats) if caveats else "public-data signal stack only"
+
+
+def _hold_horizon(row: pd.Series) -> str:
+    catalyst = str(row.get("catalyst", "") or "").lower()
+    rv = float(row.get("rv_5d", 0) or 0)
+    if "earnings" in catalyst or "geopolitical" in catalyst:
+        return "1-3 days"
+    if rv >= 0.50:
+        return "1-5 days"
+    if row.get("conviction_label") in {"Strong", "High"}:
+        return "3-10 days"
+    return "1-5 days"

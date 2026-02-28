@@ -7,6 +7,7 @@ from pathlib import Path
 import pandas as pd
 
 from src.config import AppConfig
+from src.state.store import SharedStateStore
 from src.utils.io import read_json, write_json
 
 
@@ -31,10 +32,11 @@ class PaperPortfolio:
     def __init__(self, settings: AppConfig) -> None:
         self.settings = settings
         self.path = settings.state_dir / "paper_portfolio.json"
+        self.store = SharedStateStore(settings)
         self.state = self._load()
 
     def _load(self) -> PortfolioState:
-        raw = read_json(self.path, {})
+        raw = self.store.read_json("portfolio_state", read_json(self.path, {}))
         if not raw:
             return PortfolioState(cash=self.settings.starting_cash)
         positions = {
@@ -54,6 +56,18 @@ class PaperPortfolio:
         payload = asdict(self.state)
         payload["positions"] = {k: asdict(v) for k, v in self.state.positions.items()}
         write_json(self.path, payload)
+        self.store.write_json("portfolio_state", payload)
+
+    def upsert_position(self, ticker: str, quantity: float, avg_entry: float) -> None:
+        if quantity <= 0:
+            self.remove_position(ticker)
+            return
+        self.state.positions[ticker] = Position(ticker=ticker.upper(), quantity=float(quantity), avg_entry=float(avg_entry))
+        self.save()
+
+    def remove_position(self, ticker: str) -> None:
+        self.state.positions.pop(ticker.upper(), None)
+        self.save()
 
     def positions_frame(self, prices: dict[str, float] | None = None) -> pd.DataFrame:
         prices = prices or {}
