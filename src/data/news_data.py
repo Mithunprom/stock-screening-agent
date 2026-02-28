@@ -19,8 +19,8 @@ FINANCE_FEEDS = [
     "https://www.sec.gov/rss/litigation/litreleases.xml",
 ]
 
-POSITIVE_WORDS = {"beat", "upgrade", "record", "growth", "surge", "profit", "wins", "guidance"}
-NEGATIVE_WORDS = {"miss", "downgrade", "probe", "lawsuit", "fraud", "cut", "loss", "plunge"}
+POSITIVE_WORDS = {"beat", "upgrade", "record", "growth", "surge", "profit", "wins", "guidance", "contract", "award", "order"}
+NEGATIVE_WORDS = {"miss", "downgrade", "probe", "lawsuit", "fraud", "cut", "loss", "plunge", "ceasefire"}
 FINBERT_ENABLED = os.getenv("ENABLE_FINBERT", "0").lower() in {"1", "true", "yes"}
 
 try:
@@ -149,6 +149,8 @@ class NewsDataAdapter:
     @staticmethod
     def _detect_catalyst(text: str) -> str:
         lowered = text.lower()
+        if any(term in lowered for term in {"war", "conflict", "missile", "strike", "pentagon", "nato", "defense", "military", "invasion"}):
+            return "geopolitical shock"
         if "earnings" in lowered:
             return "earnings"
         if "guidance" in lowered:
