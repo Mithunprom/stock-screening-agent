@@ -180,6 +180,14 @@ def render_app(snapshot: dict) -> None:
         unsafe_allow_html=True,
     )
 
+    control_col1, control_col2 = st.columns([1, 4])
+    with control_col1:
+        if st.button("Refresh State", use_container_width=True):
+            load_snapshot.clear()
+            st.rerun()
+    with control_col2:
+        st.caption("Refresh State reloads the latest shared snapshot from the repository state branch.")
+
     market = snapshot["market_context"]
     portfolio_metrics = snapshot["portfolio_metrics"]
     portfolio_state = snapshot["portfolio_state"]
