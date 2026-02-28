@@ -156,7 +156,7 @@ Deployment steps:
 
 1. Push this repo to GitHub.
 2. Create a Streamlit Community Cloud app pointing at `app.py`.
-3. In app secrets, set:
+3. In Streamlit app secrets, set:
 
 ```toml
 APP_USERNAME = "your-login"
@@ -170,6 +170,51 @@ EMAIL_TO = "..."
 ```
 
 4. Open the deployed URL from any device and log in with `APP_USERNAME` / `APP_PASSWORD`.
+
+Your repo is already on GitHub here:
+
+- [stock-screening-agent](https://github.com/Mithunprom/stock-screening-agent)
+
+Recommended deployment for cross-device access:
+
+- Streamlit Community Cloud hosts the dashboard UI
+- GitHub Actions runs the daily and hourly jobs
+- SMTP sends the email alerts
+
+This separation matters because Streamlit Cloud is good for serving the app, but it is not the right place to run market-hour schedulers.
+
+## GitHub Actions Setup
+
+The repo includes:
+
+- [.github/workflows/daily_screen.yml](/Users/mithunghosh/Documents/Stock_agent/codex%20stock%20agent/.github/workflows/daily_screen.yml)
+- [.github/workflows/hourly_update.yml](/Users/mithunghosh/Documents/Stock_agent/codex%20stock%20agent/.github/workflows/hourly_update.yml)
+
+Add these GitHub repository secrets:
+
+```text
+SMTP_HOST
+SMTP_PORT
+SMTP_USER
+SMTP_PASS
+EMAIL_FROM
+EMAIL_TO
+APP_USERNAME
+APP_PASSWORD
+```
+
+Then:
+
+1. Go to the GitHub repo `Settings` > `Secrets and variables` > `Actions`
+2. Add the secrets above
+3. Open the `Actions` tab and enable workflows if GitHub asks
+4. Run `Daily Screen` once with `workflow_dispatch`
+5. Run `Hourly Update` once with `workflow_dispatch`
+
+Notes:
+
+- The hourly workflow runs every hour on weekdays, but the Python pipeline itself blocks weekends, holidays, pre-market, and post-market sends.
+- GitHub Actions cron is UTC-based and does not auto-adjust for DST. The current daily workflow is pinned to `15:00 UTC`, which matches `7:00 AM PT` during standard time. If you want DST-perfect timing year-round, use two seasonal cron schedules or move scheduling to a timezone-aware external scheduler.
 
 Other free options:
 
