@@ -6,6 +6,22 @@ from pathlib import Path
 from typing import List
 
 
+def _get_env_str(name: str, default: str = "") -> str:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    value = value.strip()
+    return value if value else default
+
+
+def _get_env_int(name: str, default: int) -> int:
+    raw = _get_env_str(name, str(default))
+    try:
+        return int(raw)
+    except ValueError:
+        return default
+
+
 @dataclass(slots=True)
 class RiskConfig:
     daily_drawdown_kill_switch: float = 0.10
@@ -60,15 +76,15 @@ class UniverseConfig:
 
 @dataclass(slots=True)
 class EmailConfig:
-    smtp_host: str = os.getenv("SMTP_HOST", "")
-    smtp_port: int = int(os.getenv("SMTP_PORT", "587"))
-    smtp_user: str = os.getenv("SMTP_USER", "")
-    smtp_pass: str = os.getenv("SMTP_PASS", "")
-    email_from: str = os.getenv("EMAIL_FROM", "")
+    smtp_host: str = _get_env_str("SMTP_HOST", "")
+    smtp_port: int = _get_env_int("SMTP_PORT", 587)
+    smtp_user: str = _get_env_str("SMTP_USER", "")
+    smtp_pass: str = _get_env_str("SMTP_PASS", "")
+    email_from: str = _get_env_str("EMAIL_FROM", "")
     email_to: List[str] = field(
-        default_factory=lambda: [x.strip() for x in os.getenv("EMAIL_TO", "").split(",") if x.strip()]
+        default_factory=lambda: [x.strip() for x in _get_env_str("EMAIL_TO", "").split(",") if x.strip()]
     )
-    dry_run_default: bool = os.getenv("EMAIL_DRY_RUN", "false").lower() == "true"
+    dry_run_default: bool = _get_env_str("EMAIL_DRY_RUN", "false").lower() == "true"
 
 
 @dataclass(slots=True)
