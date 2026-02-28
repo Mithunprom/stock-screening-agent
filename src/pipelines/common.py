@@ -125,12 +125,14 @@ def build_pipeline_artifacts(settings: AppConfig) -> PipelineArtifacts:
 
 
 def build_tracking_snapshot(artifacts: PipelineArtifacts, portfolio: PaperPortfolio) -> dict:
-    latest = artifacts.latest.copy().sort_values(["risk_blocked", "fused_confidence"], ascending=[True, False])
+    latest = artifacts.latest.copy().sort_values(["risk_blocked", "opportunity_score"], ascending=[True, False])
     recommendation_columns = [
         "ticker",
         "sector",
         "action",
         "close",
+        "opportunity_score",
+        "conviction_label",
         "fused_confidence",
         "risk_label",
         "rv_5d",
@@ -153,6 +155,8 @@ def build_tracking_snapshot(artifacts: PipelineArtifacts, portfolio: PaperPortfo
             "ticker",
             "sector",
             "action",
+            "opportunity_score",
+            "conviction_label",
             "fused_confidence",
             "risk_label",
             "close",
@@ -212,8 +216,10 @@ def _build_market_context(latest: pd.DataFrame) -> dict:
 
 def _build_watchlist(latest: pd.DataFrame) -> pd.DataFrame:
     ranked = latest[~latest["ticker"].isin({"SPY", "QQQ"})].copy()
-    ranked["risk_adjusted"] = ranked["fused_confidence"] / (ranked["forecast_vol"].fillna(ranked["rv_20d"]).clip(lower=0.05))
-    return ranked.sort_values(["risk_blocked", "risk_adjusted"], ascending=[True, False]).head(5)
+    ranked["risk_adjusted"] = ranked["opportunity_score"].fillna(0) / (
+        ranked["forecast_vol"].fillna(ranked["rv_20d"]).clip(lower=0.05)
+    )
+    return ranked.sort_values(["risk_blocked", "risk_adjusted", "headline_count"], ascending=[True, False, False]).head(5)
 
 
 def _build_why(row: pd.Series) -> str:

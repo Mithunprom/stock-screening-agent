@@ -31,6 +31,27 @@ class FusionModel:
         )
         logits = np.clip(3 * df["fused_score"].fillna(0), -20, 20)
         df["fused_confidence"] = 1 / (1 + np.exp(-logits))
+        catalyst_component = (
+            0.45 * df["event_score"].fillna(0)
+            + 0.35 * df["catalyst_confidence"].fillna(0)
+            - 0.20 * df["event_risk_score"].fillna(0)
+        )
+        liquidity_component = np.log1p(df["avg_dollar_volume_20d"].fillna(0)).replace([np.inf, -np.inf], 0)
+        liquidity_component = liquidity_component / max(float(liquidity_component.max() or 1.0), 1.0)
+        risk_blocked = df["risk_blocked"].fillna(False).astype(float) if "risk_blocked" in df.columns else 0.0
+        df["opportunity_score"] = (
+            0.50 * df["fused_confidence"].fillna(0)
+            + 0.20 * catalyst_component
+            + 0.15 * df["baseline_probability"].fillna(0)
+            + 0.10 * liquidity_component
+            - 0.20 * df["vol_risk_score"].fillna(0)
+            - 0.15 * risk_blocked
+        )
+        df["conviction_label"] = pd.cut(
+            df["opportunity_score"].fillna(0),
+            bins=[-np.inf, 0.15, 0.35, 0.60, np.inf],
+            labels=["Low", "Developing", "Strong", "High"],
+        ).astype(str)
         df["risk_grade"] = pd.cut(
             df["vol_risk_score"].fillna(0.5),
             bins=[-np.inf, 0.35, 0.55, 0.75, np.inf],

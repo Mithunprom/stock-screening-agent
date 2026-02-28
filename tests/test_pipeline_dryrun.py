@@ -4,8 +4,8 @@ from src.pipelines.hourly_job import run as run_hourly
 
 def test_daily_job_dry_run_outputs_report() -> None:
     subject, body = run_daily(dry_run=True)
-    assert "Daily Volatility Screen" in subject
-    assert "Top 20 Volatility Screen" in body
+    assert "Daily Opportunity + Catalyst Screen" in subject
+    assert "Top 20 Opportunity Screen" in body
     assert "Watchlist Highlights" in body
 
 

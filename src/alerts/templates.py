@@ -16,28 +16,27 @@ def render_table(frame: pd.DataFrame, columns: list[str]) -> str:
 
 
 def render_daily_email(as_of: datetime, market_context: dict, screen: pd.DataFrame, watchlist: pd.DataFrame) -> tuple[str, str]:
-    subject = f"Daily Volatility Screen (Top 20) — {as_of:%Y-%m-%d}"
+    subject = f"Daily Opportunity + Catalyst Screen (Top 20) — {as_of:%Y-%m-%d}"
     lines = [
         "## Market Context",
         f"SPY last: {market_context.get('spy_last', 0):.2f}, 1d: {market_context.get('spy_ret_1d', 0):+.2%}, 5d realized vol: {market_context.get('spy_rv_5d', 0):.1%}",
         f"QQQ last: {market_context.get('qqq_last', 0):.2f}, 1d: {market_context.get('qqq_ret_1d', 0):+.2%}, 5d realized vol: {market_context.get('qqq_rv_5d', 0):.1%}",
         f"Risk regime: {market_context.get('risk_regime', 'Moderate')}",
         "",
-        "## Top 20 Volatility Screen",
+        "## Top 20 Opportunity Screen",
         render_table(
             screen,
             [
                 "ticker",
+                "sector",
                 "close",
-                "rv_5d",
-                "atr_pct",
-                "avg_dollar_volume_20d",
-                "gap_pct",
                 "catalyst",
+                "opportunity_score",
+                "conviction_label",
+                "fused_confidence",
                 "xsec_score",
                 "ts_score",
                 "vol_risk_score",
-                "fused_confidence",
                 "risk_label",
             ],
         ),
@@ -49,6 +48,7 @@ def render_daily_email(as_of: datetime, market_context: dict, screen: pd.DataFra
             [
                 f"### {row['ticker']} — {row['action']}",
                 f"Why: {row['why']}",
+                f"Setup quality: conviction {row.get('conviction_label', 'n/a')}, opportunity score {row.get('opportunity_score', 0):.2f}, fused confidence {row.get('fused_confidence', 0):.2f}.",
                 f"Invalidation: {row['invalidation_text']}",
                 f"What changes the view: {row['what_changes']}",
                 f"Caveats: {row['caveats']}",
@@ -81,4 +81,3 @@ def render_hourly_email(as_of: datetime, deltas: pd.DataFrame, risk_summary: dic
     lines.append("")
     lines.append("Disclaimer: research only, not investment advice, no real trades are executed.")
     return subject, "\n".join(lines)
-

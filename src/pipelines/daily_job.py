@@ -13,7 +13,8 @@ def run(dry_run: bool = False) -> tuple[str, str]:
     artifacts = build_pipeline_artifacts(settings)
     persist_tracking_snapshot(settings, artifacts)
     screen = (
-        artifacts.latest.sort_values("rv_5d", ascending=False)
+        artifacts.latest[~artifacts.latest["ticker"].isin({"SPY", "QQQ"})]
+        .sort_values(["risk_blocked", "opportunity_score", "headline_count"], ascending=[True, False, False])
         .head(settings.universe.top_n_volatility)
         .copy()
     )

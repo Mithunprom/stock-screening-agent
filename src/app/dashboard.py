@@ -89,6 +89,14 @@ def inject_styles() -> None:
             margin: 0;
             opacity: 0.9;
         }
+        .nav-card {
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(15, 23, 42, 0.06);
+            border-radius: 18px;
+            padding: 0.9rem 1rem;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+            min-height: 140px;
+        }
         .section-card {
             background: rgba(255, 253, 248, 0.92);
             border: 1px solid rgba(15, 23, 42, 0.08);
@@ -123,6 +131,11 @@ def inject_styles() -> None:
             letter-spacing: 0.05em;
             text-transform: uppercase;
             color: #6b7280;
+        }
+        .guide-copy {
+            color: #475569;
+            font-size: 0.95rem;
+            line-height: 1.5;
         }
         </style>
         """,
@@ -200,6 +213,43 @@ def render_app(snapshot: dict) -> None:
     col4.metric("Intraday DD", f"{portfolio_metrics['intraday_drawdown']:.2%}")
     col5.metric("Gross Exposure", f"{portfolio_metrics['gross_exposure_pct']:.2%}")
 
+    recommendations_df = pd.DataFrame(snapshot["recommendations"])
+    watchlist_df = pd.DataFrame(snapshot["watchlist"])
+    positions_df = pd.DataFrame(snapshot["positions"])
+
+    st.subheader("Start Here")
+    guide_cols = st.columns(3)
+    guide_cols[0].markdown(
+        """
+        <div class="nav-card">
+            <div class="small-label">1. Best Ideas</div>
+            <h3>Watchlist</h3>
+            <p class="guide-copy">Start with the Watchlist tab. It shows the strongest setups ranked by model potential, catalyst quality, and tradability.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    guide_cols[1].markdown(
+        """
+        <div class="nav-card">
+            <div class="small-label">2. Risk Check</div>
+            <h3>Risk State</h3>
+            <p class="guide-copy">Check whether the kill-switch is active and whether a stock is marked RISKY before acting on any idea.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    guide_cols[2].markdown(
+        """
+        <div class="nav-card">
+            <div class="small-label">3. What Changed</div>
+            <h3>Hourly Deltas</h3>
+            <p class="guide-copy">Use the hourly changes panel to see only what materially moved since the last update.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
     status_left, status_right = st.columns([2, 3])
     with status_left:
         st.markdown('<div class="section-card">', unsafe_allow_html=True)
@@ -227,31 +277,44 @@ def render_app(snapshot: dict) -> None:
     else:
         st.write("No persisted hourly deltas yet.")
 
-    recommendations_df = pd.DataFrame(snapshot["recommendations"])
-    watchlist_df = pd.DataFrame(snapshot["watchlist"])
-    positions_df = pd.DataFrame(snapshot["positions"])
+    best_idea = watchlist_df.head(1)
+    if not best_idea.empty:
+        top = best_idea.iloc[0]
+        st.markdown(
+            f"""
+            <div class="watch-card">
+                <div class="small-label">Top Idea Right Now</div>
+                <h3 style="margin-bottom:0.2rem;">{top['ticker']} · {top['action']}</h3>
+                <p class="guide-copy">Conviction: <strong>{top.get('conviction_label', 'n/a')}</strong> | Opportunity score: <strong>{top.get('opportunity_score', 0):.2f}</strong> | Risk: <strong>{top['risk_label']}</strong></p>
+                <p class="guide-copy">{top['why']}</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-    tabs = st.tabs(["Recommendations", "Watchlist", "Portfolio", "Model Governance", "Raw Snapshot"])
+    tabs = st.tabs(["Overview", "Best Setups", "All Ideas", "Portfolio", "Model Governance", "Raw Snapshot"])
 
     with tabs[0]:
-        st.subheader("Recommendation Tracker")
-        filter_col1, filter_col2, filter_col3 = st.columns([1.2, 1.2, 2])
-        actions = ["All"] + sorted(recommendations_df["action"].dropna().unique().tolist())
-        selected_action = filter_col1.selectbox("Action", actions, index=0)
-        risk_options = ["All"] + sorted(recommendations_df["risk_label"].dropna().unique().tolist())
-        selected_risk = filter_col2.selectbox("Risk", risk_options, index=0)
-        search = filter_col3.text_input("Ticker Search", "")
-        filtered = recommendations_df.copy()
-        if selected_action != "All":
-            filtered = filtered[filtered["action"] == selected_action]
-        if selected_risk != "All":
-            filtered = filtered[filtered["risk_label"] == selected_risk]
-        if search:
-            filtered = filtered[filtered["ticker"].str.contains(search.upper(), na=False)]
-        st.dataframe(filtered, use_container_width=True, hide_index=True)
+        st.subheader("Beginner Overview")
+        overview_cols = st.columns(3)
+        overview_cols[0].metric("Ideas on Watchlist", len(watchlist_df))
+        overview_cols[1].metric("High Conviction Names", int((recommendations_df["conviction_label"] == "High").sum()))
+        overview_cols[2].metric("News-Driven Names", int((recommendations_df["catalyst"].fillna("") != "").sum()))
+        st.markdown(
+            """
+            **How to use this page**
+
+            - Start with `Best Setups` for the clearest ideas.
+            - Use `All Ideas` if you want to filter by ticker, risk, or action.
+            - Ignore `Model Governance` unless you want the technical details.
+            """,
+        )
+        if hourly_state.get("deltas"):
+            st.markdown("**Latest notable changes**")
+            st.dataframe(pd.DataFrame(hourly_state["deltas"]).head(5), use_container_width=True, hide_index=True)
 
     with tabs[1]:
-        st.subheader("Top Watchlist")
+        st.subheader("Best Setups")
         if watchlist_df.empty:
             st.write("No watchlist names available.")
         else:
@@ -261,9 +324,11 @@ def render_app(snapshot: dict) -> None:
                     <div class="watch-card">
                         <div>
                             <span class="pill">{row['action']}</span>
+                            <span class="pill">{row.get('conviction_label', 'n/a')}</span>
                             <span class="pill risk-pill">{row['risk_label']}</span>
                         </div>
-                        <h3 style="margin-bottom:0.3rem;">{row['ticker']}</h3>
+                        <h3 style="margin-bottom:0.3rem;">{row['ticker']} · {row.get('sector', 'Other')}</h3>
+                        <p class="guide-copy"><strong>Opportunity score:</strong> {row.get('opportunity_score', 0):.2f}</p>
                         <p style="margin-bottom:0.5rem;">{row['why']}</p>
                         <p><strong>Invalidation:</strong> {row['invalidation_text']}</p>
                         <p><strong>What changes:</strong> {row['what_changes']}</p>
@@ -274,6 +339,28 @@ def render_app(snapshot: dict) -> None:
                 )
 
     with tabs[2]:
+        st.subheader("All Ideas")
+        filter_col1, filter_col2, filter_col3, filter_col4 = st.columns([1.2, 1.2, 1.2, 2])
+        actions = ["All"] + sorted(recommendations_df["action"].dropna().unique().tolist())
+        selected_action = filter_col1.selectbox("Action", actions, index=0)
+        risk_options = ["All"] + sorted(recommendations_df["risk_label"].dropna().unique().tolist())
+        selected_risk = filter_col2.selectbox("Risk", risk_options, index=0)
+        conviction_options = ["All"] + sorted(recommendations_df["conviction_label"].dropna().unique().tolist())
+        selected_conviction = filter_col3.selectbox("Conviction", conviction_options, index=0)
+        search = filter_col4.text_input("Ticker Search", "")
+        filtered = recommendations_df.copy()
+        if selected_action != "All":
+            filtered = filtered[filtered["action"] == selected_action]
+        if selected_risk != "All":
+            filtered = filtered[filtered["risk_label"] == selected_risk]
+        if selected_conviction != "All":
+            filtered = filtered[filtered["conviction_label"] == selected_conviction]
+        if search:
+            filtered = filtered[filtered["ticker"].str.contains(search.upper(), na=False)]
+        filtered = filtered.sort_values(["opportunity_score", "fused_confidence"], ascending=[False, False])
+        st.dataframe(filtered, use_container_width=True, hide_index=True)
+
+    with tabs[3]:
         st.subheader("Paper Portfolio")
         if positions_df.empty:
             st.write("No active paper positions.")
@@ -281,7 +368,7 @@ def render_app(snapshot: dict) -> None:
             st.dataframe(positions_df, use_container_width=True, hide_index=True)
         st.json(portfolio_state)
 
-    with tabs[3]:
+    with tabs[4]:
         st.subheader("Model Cards")
         model_cards = snapshot["model_cards"]
         governance_cols = st.columns(4)
@@ -290,7 +377,7 @@ def render_app(snapshot: dict) -> None:
         governance_cols[2].json(model_cards.get("explainability", {}))
         governance_cols[3].json(model_cards["governance"])
 
-    with tabs[4]:
+    with tabs[5]:
         st.subheader("Raw Snapshot")
         st.code(json.dumps(snapshot, indent=2, default=str), language="json")
 
