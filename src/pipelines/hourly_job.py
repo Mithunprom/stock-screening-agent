@@ -9,7 +9,8 @@ from src.alerts.emailer import Emailer
 from src.alerts.templates import render_hourly_email
 from src.config import get_settings
 from src.data.calendar import market_session_status
-from src.pipelines.common import build_pipeline_artifacts
+from src.pipelines.common import build_pipeline_artifacts, persist_tracking_snapshot
+from src.state.store import SharedStateStore
 from src.utils.io import read_json, write_json
 
 
@@ -20,8 +21,9 @@ def run(dry_run: bool = False, force: bool = False) -> tuple[str, str] | None:
     if not force and not session.is_open:
         return None
 
+    store = SharedStateStore(settings)
     state_path = settings.state_dir / "hourly_state.json"
-    previous = read_json(state_path, {"rows": []})
+    previous = store.read_json("hourly_state", {"rows": []})
     prev_df = pd.DataFrame(previous.get("rows", []))
     current = artifacts.latest[["ticker", "fused_confidence", "risk_label", "action", "why_short", "invalidation_text"]].copy()
     current["change_reason"] = current["why_short"]
@@ -35,7 +37,10 @@ def run(dry_run: bool = False, force: bool = False) -> tuple[str, str] | None:
             | (merged["risk_label"] != merged["risk_label_prev"])
             | (merged["action"] != merged["action_prev"])
         ][current.columns]
-    write_json(state_path, {"rows": current.to_dict(orient="records")})
+    payload = {"rows": current.to_dict(orient="records"), "deltas": deltas.to_dict(orient="records"), "as_of": artifacts.as_of.isoformat()}
+    write_json(state_path, payload)
+    store.write_json("hourly_state", payload)
+    persist_tracking_snapshot(settings, artifacts)
     subject, body = render_hourly_email(artifacts.as_of, deltas.sort_values("fused_confidence", ascending=False), artifacts.portfolio_metrics)
     Emailer(settings).send(subject, body, dry_run=dry_run)
     return subject, body
@@ -51,4 +56,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

@@ -3,11 +3,13 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from src.data.sector_map import get_sector
 from src.features.volatility import average_true_range, realized_volatility
 
 
 def build_feature_frame(daily: pd.DataFrame, intraday: pd.DataFrame | None = None) -> pd.DataFrame:
     df = daily.sort_values(["ticker", "date"]).copy()
+    df["sector"] = df["ticker"].map(get_sector)
     df["ret_1d"] = df.groupby("ticker")["close"].pct_change(1)
     df["ret_5d"] = df.groupby("ticker")["close"].pct_change(5)
     df["ret_20d"] = df.groupby("ticker")["close"].pct_change(20)
@@ -30,12 +32,16 @@ def build_feature_frame(daily: pd.DataFrame, intraday: pd.DataFrame | None = Non
         var = benchmark.rolling(window).var()
         return cov / var.replace(0, np.nan)
 
-    df["beta_spy"] = df.groupby("ticker", group_keys=False).apply(
-        lambda x: rolling_beta(x["ret_1d"], x["spy_ret_1d"])
-    ).reset_index(level=0, drop=True)
-    df["beta_qqq"] = df.groupby("ticker", group_keys=False).apply(
-        lambda x: rolling_beta(x["ret_1d"], x["qqq_ret_1d"])
-    ).reset_index(level=0, drop=True)
+    df["beta_spy"] = (
+        df.groupby("ticker")[["ret_1d", "spy_ret_1d"]]
+        .apply(lambda x: rolling_beta(x["ret_1d"], x["spy_ret_1d"]))
+        .reset_index(level=0, drop=True)
+    )
+    df["beta_qqq"] = (
+        df.groupby("ticker")[["ret_1d", "qqq_ret_1d"]]
+        .apply(lambda x: rolling_beta(x["ret_1d"], x["qqq_ret_1d"]))
+        .reset_index(level=0, drop=True)
+    )
 
     if intraday is not None and not intraday.empty:
         intraday = intraday.sort_values(["ticker", "date"]).copy()
@@ -51,5 +57,6 @@ def build_feature_frame(daily: pd.DataFrame, intraday: pd.DataFrame | None = Non
         df["intraday_rv"] = np.nan
         df["intraday_volume"] = np.nan
 
+    df["sector_momentum_5d"] = df.groupby(["date", "sector"])["ret_5d"].transform("mean")
+    df["sector_relative_momentum_5d"] = df["ret_5d"] - df["sector_momentum_5d"]
     return df.replace([np.inf, -np.inf], np.nan)
-

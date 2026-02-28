@@ -20,6 +20,7 @@ from src.models.vol_model import VolModel
 from src.portfolio.execution_rules import ExecutionRules
 from src.portfolio.paper_portfolio import PaperPortfolio
 from src.portfolio.risk import RiskEngine
+from src.state.store import SharedStateStore
 from src.utils.logging import get_logger
 from src.utils.time import now_local
 
@@ -52,9 +53,11 @@ def build_pipeline_artifacts(settings: AppConfig) -> PipelineArtifacts:
     factor_model = FactorModel()
     factor_df = factor_model.fit_predict(features)
     deep_model = DeepTimeSeriesModel()
-    ts_df = deep_model.fit_predict(features).signal
+    deep_result = deep_model.fit_predict(features)
+    ts_df = deep_result.signal
     vol_df = VolModel().fit_predict(features)
-    baseline_df = BaselineModel().fit_predict(features)
+    baseline_model = BaselineModel()
+    baseline_df = baseline_model.fit_predict(features)
 
     latest = (
         features.sort_values("date").groupby("ticker").tail(1)
@@ -93,14 +96,19 @@ def build_pipeline_artifacts(settings: AppConfig) -> PipelineArtifacts:
     watchlist = _build_watchlist(latest)
     model_cards = {
         "factor": factor_model.model_card(),
-        "deep": deep_model.fit_predict(features).metadata,
-        "baseline": {"model": "hist_gradient_boosting_or_heuristic"},
+        "deep": deep_result.metadata,
+        "baseline": {
+            "model": "hist_gradient_boosting_or_heuristic",
+            "validation": baseline_df.attrs.get("validation", baseline_model.validation),
+        },
+        "explainability": explain.summarize_model(None, features, ["ret_5d", "ret_20d", "rv_5d", "gap_pct", "intraday_ret_1h"]),
         "governance": {
             "training_window": settings.lookback_days,
             "missingness": latest.isna().mean().sort_values(ascending=False).head(8).to_dict(),
             "last_update": as_of.isoformat(),
             "leakage_guard": "strict trailing features and shifted next-period targets",
             "drift_check": float(abs(latest["ret_5d"].mean() - features["ret_5d"].tail(len(latest)).mean())),
+            "sector_coverage": latest["sector"].value_counts().to_dict(),
         },
     }
     return PipelineArtifacts(
@@ -114,6 +122,70 @@ def build_pipeline_artifacts(settings: AppConfig) -> PipelineArtifacts:
         paper_actions=paper_actions,
         model_cards=model_cards,
     )
+
+
+def build_tracking_snapshot(artifacts: PipelineArtifacts, portfolio: PaperPortfolio) -> dict:
+    latest = artifacts.latest.copy().sort_values(["risk_blocked", "fused_confidence"], ascending=[True, False])
+    recommendation_columns = [
+        "ticker",
+        "sector",
+        "action",
+        "close",
+        "fused_confidence",
+        "risk_label",
+        "rv_5d",
+        "atr_pct",
+        "avg_dollar_volume_20d",
+        "catalyst",
+        "catalyst_confidence",
+        "event_risk_score",
+        "xsec_score",
+        "ts_score",
+        "vol_risk_score",
+        "invalidation_price",
+        "why",
+        "what_changes",
+        "caveats",
+    ]
+    positions_df = portfolio.positions_frame(dict(zip(latest["ticker"], latest["close"])))
+    top_watch = artifacts.watchlist[
+        [
+            "ticker",
+            "sector",
+            "action",
+            "fused_confidence",
+            "risk_label",
+            "close",
+            "invalidation_text",
+            "why",
+            "what_changes",
+            "caveats",
+        ]
+    ].copy()
+    return {
+        "as_of": artifacts.as_of.isoformat(),
+        "market_context": artifacts.market_context,
+        "portfolio_metrics": artifacts.portfolio_metrics,
+        "paper_actions": artifacts.paper_actions,
+        "recommendations": latest[recommendation_columns].to_dict(orient="records"),
+        "watchlist": top_watch.to_dict(orient="records"),
+        "positions": positions_df.to_dict(orient="records"),
+        "model_cards": artifacts.model_cards,
+        "portfolio_state": {
+            "cash": portfolio.state.cash,
+            "day_start_equity": portfolio.state.day_start_equity,
+            "current_day": portfolio.state.current_day,
+            "kill_switch_active": portfolio.state.kill_switch_active,
+            "realized_pnl": portfolio.state.realized_pnl,
+        },
+    }
+
+
+def persist_tracking_snapshot(settings: AppConfig, artifacts: PipelineArtifacts) -> dict:
+    portfolio = PaperPortfolio(settings)
+    snapshot = build_tracking_snapshot(artifacts, portfolio)
+    SharedStateStore(settings).write_json("latest_snapshot", snapshot)
+    return snapshot
 
 
 def _build_market_context(latest: pd.DataFrame) -> dict:
@@ -171,4 +243,3 @@ def _caveats(row: pd.Series) -> str:
     if row.get("headline_count", 0) == 0:
         caveats.append("public news coverage sparse")
     return ", ".join(caveats) if caveats else "public-data signal stack only"
-

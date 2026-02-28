@@ -17,8 +17,9 @@ except Exception:  # pragma: no cover
     st = None
 
 from src.config import get_settings
-from src.pipelines.common import PipelineArtifacts, build_pipeline_artifacts
+from src.pipelines.common import PipelineArtifacts, build_pipeline_artifacts, build_tracking_snapshot
 from src.portfolio.paper_portfolio import PaperPortfolio
+from src.state.store import SharedStateStore
 
 
 if st is not None:  # pragma: no branch
@@ -31,9 +32,17 @@ if st is not None:  # pragma: no branch
 
 def _load_snapshot_impl() -> dict:
     settings = get_settings()
+    store = SharedStateStore(settings)
+    shared_snapshot = store.read_json("latest_snapshot", None)
+    hourly_state = store.read_json("hourly_state", {"deltas": [], "as_of": None})
+    if shared_snapshot:
+        shared_snapshot["hourly_state"] = hourly_state
+        return shared_snapshot
     artifacts = build_pipeline_artifacts(settings)
     portfolio = PaperPortfolio(settings)
-    return build_dashboard_snapshot(artifacts, portfolio)
+    snapshot = build_dashboard_snapshot(artifacts, portfolio)
+    snapshot["hourly_state"] = hourly_state
+    return snapshot
 
 
 if st is not None:
@@ -151,81 +160,7 @@ def require_login() -> None:
 
 
 def build_dashboard_snapshot(artifacts: PipelineArtifacts, portfolio: PaperPortfolio) -> dict:
-    latest = artifacts.latest.copy()
-    latest = latest.sort_values(["risk_blocked", "fused_confidence"], ascending=[True, False])
-
-    recommendation_columns = [
-        "ticker",
-        "action",
-        "close",
-        "fused_confidence",
-        "risk_label",
-        "rv_5d",
-        "atr_pct",
-        "avg_dollar_volume_20d",
-        "catalyst",
-        "xsec_score",
-        "ts_score",
-        "vol_risk_score",
-        "invalidation_price",
-        "why",
-        "what_changes",
-        "caveats",
-    ]
-
-    positions = []
-    for ticker, pos in portfolio.state.positions.items():
-        current_row = latest[latest["ticker"] == ticker].head(1)
-        mark = float(current_row["close"].iloc[0]) if not current_row.empty else pos.avg_entry
-        market_value = pos.quantity * mark
-        unrealized = pos.quantity * (mark - pos.avg_entry)
-        positions.append(
-            {
-                "ticker": ticker,
-                "quantity": pos.quantity,
-                "avg_entry": pos.avg_entry,
-                "mark": mark,
-                "market_value": market_value,
-                "unrealized_pnl": unrealized,
-            }
-        )
-
-    positions_df = pd.DataFrame(positions)
-    if not positions_df.empty:
-        positions_df = positions_df.sort_values("market_value", ascending=False)
-
-    top_watch = artifacts.watchlist[
-        [
-            "ticker",
-            "action",
-            "fused_confidence",
-            "risk_label",
-            "close",
-            "invalidation_text",
-            "why",
-            "what_changes",
-            "caveats",
-        ]
-    ].copy()
-
-    snapshot = {
-        "as_of": artifacts.as_of.isoformat(),
-        "market_context": artifacts.market_context,
-        "portfolio_metrics": artifacts.portfolio_metrics,
-        "paper_actions": artifacts.paper_actions,
-        "recommendations": latest[recommendation_columns].to_dict(orient="records"),
-        "watchlist": top_watch.to_dict(orient="records"),
-        "positions": positions_df.to_dict(orient="records"),
-        "model_cards": artifacts.model_cards,
-        "portfolio_state": {
-            "cash": portfolio.state.cash,
-            "day_start_equity": portfolio.state.day_start_equity,
-            "current_day": portfolio.state.current_day,
-            "kill_switch_active": portfolio.state.kill_switch_active,
-            "realized_pnl": portfolio.state.realized_pnl,
-        },
-    }
-    return snapshot
+    return build_tracking_snapshot(artifacts, portfolio)
 
 
 def render_app(snapshot: dict) -> None:
@@ -248,6 +183,7 @@ def render_app(snapshot: dict) -> None:
     market = snapshot["market_context"]
     portfolio_metrics = snapshot["portfolio_metrics"]
     portfolio_state = snapshot["portfolio_state"]
+    hourly_state = snapshot.get("hourly_state", {"deltas": [], "as_of": None})
 
     col1, col2, col3, col4, col5 = st.columns(5)
     col1.metric("SPY 1d", f"{market['spy_ret_1d']:+.2%}")
@@ -275,6 +211,13 @@ def render_app(snapshot: dict) -> None:
         else:
             st.write("No new paper actions in the latest cycle.")
         st.markdown("</div>", unsafe_allow_html=True)
+
+    st.subheader("Latest Hourly Deltas")
+    if hourly_state.get("deltas"):
+        st.caption(f"Last hourly update: {hourly_state.get('as_of')}")
+        st.dataframe(pd.DataFrame(hourly_state["deltas"]), use_container_width=True, hide_index=True)
+    else:
+        st.write("No persisted hourly deltas yet.")
 
     recommendations_df = pd.DataFrame(snapshot["recommendations"])
     watchlist_df = pd.DataFrame(snapshot["watchlist"])
@@ -333,10 +276,11 @@ def render_app(snapshot: dict) -> None:
     with tabs[3]:
         st.subheader("Model Cards")
         model_cards = snapshot["model_cards"]
-        governance_cols = st.columns(3)
+        governance_cols = st.columns(4)
         governance_cols[0].json(model_cards["factor"])
         governance_cols[1].json(model_cards["deep"])
-        governance_cols[2].json(model_cards["governance"])
+        governance_cols[2].json(model_cards.get("explainability", {}))
+        governance_cols[3].json(model_cards["governance"])
 
     with tabs[4]:
         st.subheader("Raw Snapshot")

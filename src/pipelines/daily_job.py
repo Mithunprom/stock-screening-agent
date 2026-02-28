@@ -5,12 +5,13 @@ import argparse
 from src.alerts.emailer import Emailer
 from src.alerts.templates import render_daily_email
 from src.config import get_settings
-from src.pipelines.common import build_pipeline_artifacts
+from src.pipelines.common import build_pipeline_artifacts, persist_tracking_snapshot
 
 
 def run(dry_run: bool = False) -> tuple[str, str]:
     settings = get_settings()
     artifacts = build_pipeline_artifacts(settings)
+    persist_tracking_snapshot(settings, artifacts)
     screen = (
         artifacts.latest.sort_values("rv_5d", ascending=False)
         .head(settings.universe.top_n_volatility)
@@ -30,4 +31,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

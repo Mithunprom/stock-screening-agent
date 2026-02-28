@@ -161,6 +161,8 @@ Deployment steps:
 ```toml
 APP_USERNAME = "your-login"
 APP_PASSWORD = "your-password"
+GITHUB_STATE_REPO = "Mithunprom/stock-screening-agent"
+GITHUB_STATE_BRANCH = "state"
 SMTP_HOST = "..."
 SMTP_PORT = "587"
 SMTP_USER = "..."
@@ -215,6 +217,7 @@ Notes:
 
 - The hourly workflow runs every hour on weekdays, but the Python pipeline itself blocks weekends, holidays, pre-market, and post-market sends.
 - GitHub Actions cron is UTC-based and does not auto-adjust for DST. The current daily workflow is pinned to `15:00 UTC`, which matches `7:00 AM PT` during standard time. If you want DST-perfect timing year-round, use two seasonal cron schedules or move scheduling to a timezone-aware external scheduler.
+- The workflows publish `state/latest_snapshot.json` and `state/hourly_state.json` to the dedicated `state` branch using the built-in GitHub Actions token. The hosted Streamlit app reads those files, so the dashboard and schedulers share one persistent state without forcing a Streamlit redeploy on every hourly update.
 
 Other free options:
 

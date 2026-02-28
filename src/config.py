@@ -72,6 +72,15 @@ class EmailConfig:
 
 
 @dataclass(slots=True)
+class SharedStateConfig:
+    mode: str = os.getenv("SHARED_STATE_MODE", "local")
+    github_repo: str = os.getenv("GITHUB_STATE_REPO", "")
+    github_branch: str = os.getenv("GITHUB_STATE_BRANCH", "main")
+    github_token: str = os.getenv("GITHUB_STATE_TOKEN", os.getenv("GITHUB_TOKEN", ""))
+    github_state_dir: str = os.getenv("GITHUB_STATE_DIR", "state")
+
+
+@dataclass(slots=True)
 class AppConfig:
     timezone: str = os.getenv("SCREENER_TIMEZONE", "America/Los_Angeles")
     state_dir: Path = Path(os.getenv("SCREENER_STATE_DIR", ".state"))
@@ -86,14 +95,15 @@ class AppConfig:
     risk: RiskConfig = field(default_factory=RiskConfig)
     universe: UniverseConfig = field(default_factory=UniverseConfig)
     email: EmailConfig = field(default_factory=EmailConfig)
+    shared_state: SharedStateConfig = field(default_factory=SharedStateConfig)
 
     def ensure_dirs(self) -> None:
         self.state_dir.mkdir(parents=True, exist_ok=True)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
+        (self.state_dir / "shared").mkdir(parents=True, exist_ok=True)
 
 
 def get_settings() -> AppConfig:
     settings = AppConfig()
     settings.ensure_dirs()
     return settings
-

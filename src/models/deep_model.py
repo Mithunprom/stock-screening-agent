@@ -6,6 +6,8 @@ import os
 import numpy as np
 import pandas as pd
 
+from src.models.validation import walk_forward_splits
+
 TORCH_ENABLED = os.getenv("ENABLE_TORCH", "0").lower() in {"1", "true", "yes"}
 
 try:
@@ -49,18 +51,33 @@ class DeepTimeSeriesModel:
     def fit_predict(self, features: pd.DataFrame, horizon_label: str = "ret_1d") -> DeepForecastResult:
         if torch is None or nn is None:
             signal = self._fallback_predict(features, horizon_label)
-            return DeepForecastResult(signal=signal, metadata={"backend": "heuristic"})
+            return DeepForecastResult(signal=signal, metadata=self._validation_metadata(signal, features, "heuristic"))
         signal = self._torch_predict(features, horizon_label)
-        return DeepForecastResult(signal=signal, metadata={"backend": "torch", "mc_samples": self.mc_samples})
+        return DeepForecastResult(signal=signal, metadata=self._validation_metadata(signal, features, "torch"))
 
     def _fallback_predict(self, features: pd.DataFrame, horizon_label: str) -> pd.DataFrame:
         df = features.sort_values(["ticker", "date"]).copy()
-        df["ts_score"] = (
-            0.5 * df["ret_5d"].fillna(0)
-            + 0.3 * df["ret_20d"].fillna(0)
-            - 0.2 * df["rv_5d"].fillna(df["rv_5d"].median())
-            + 0.2 * df["intraday_ret_1h"].fillna(0)
+        rows = []
+        for _, test_dates in walk_forward_splits(sorted(df["date"].dropna().unique().tolist()), min_train=40, step=5):
+            chunk = df[df["date"].isin(test_dates)].copy()
+            chunk["ts_score"] = (
+                0.45 * chunk["ret_5d"].fillna(0)
+                + 0.25 * chunk["ret_20d"].fillna(0)
+                + 0.15 * chunk["sector_relative_momentum_5d"].fillna(0)
+                - 0.20 * chunk["rv_5d"].fillna(df["rv_5d"].median())
+                + 0.15 * chunk["intraday_ret_1h"].fillna(0)
+            )
+            rows.append(chunk[["date", "ticker", "ts_score"]])
+        pred = pd.concat(rows, ignore_index=True) if rows else df[["date", "ticker"]].copy()
+        df = df.merge(pred, on=["date", "ticker"], how="left")
+        fill = (
+            0.45 * df["ret_5d"].fillna(0)
+            + 0.25 * df["ret_20d"].fillna(0)
+            + 0.15 * df["sector_relative_momentum_5d"].fillna(0)
+            - 0.20 * df["rv_5d"].fillna(df["rv_5d"].median())
+            + 0.15 * df["intraday_ret_1h"].fillna(0)
         )
+        df["ts_score"] = df["ts_score"].fillna(fill)
         uncertainty = df.groupby("ticker")["ret_1d"].transform(lambda x: x.rolling(20).std(ddof=0)).fillna(df["rv_5d"])
         df["ts_uncertainty"] = uncertainty.fillna(uncertainty.median()).clip(lower=0.001)
         return df[["date", "ticker", "ts_score", "ts_uncertainty"]]
@@ -104,3 +121,16 @@ class DeepTimeSeriesModel:
         if not rows:
             return self._fallback_predict(features, horizon_label)
         return pd.DataFrame(rows)
+
+    @staticmethod
+    def _validation_metadata(signal: pd.DataFrame, features: pd.DataFrame, backend: str) -> dict:
+        merged = signal.merge(
+            features.sort_values(["ticker", "date"]).assign(target_next_1d=lambda x: x.groupby("ticker")["ret_1d"].shift(-1))[["date", "ticker", "target_next_1d"]],
+            on=["date", "ticker"],
+            how="left",
+        ).dropna(subset=["ts_score", "target_next_1d"])
+        if merged.empty:
+            return {"backend": backend, "directional_accuracy": 0.0, "mae": None}
+        directional = float(np.mean(np.sign(merged["ts_score"]) == np.sign(merged["target_next_1d"])))
+        mae = float(np.mean(np.abs(merged["ts_score"] - merged["target_next_1d"])))
+        return {"backend": backend, "directional_accuracy": directional, "mae": mae}

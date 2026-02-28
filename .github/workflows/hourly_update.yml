@@ -9,6 +9,8 @@ on:
 jobs:
   run-hourly-update:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,5 +35,8 @@ jobs:
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
           APP_USERNAME: ${{ secrets.APP_USERNAME }}
           APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
+          GITHUB_STATE_REPO: Mithunprom/stock-screening-agent
+          GITHUB_STATE_BRANCH: state
+          GITHUB_STATE_TOKEN: ${{ github.token }}
           SCREENER_TIMEZONE: America/Los_Angeles
         run: python -m src.pipelines.hourly_job
