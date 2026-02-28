@@ -176,9 +176,32 @@ def build_dashboard_snapshot(artifacts: PipelineArtifacts, portfolio: PaperPortf
     return build_tracking_snapshot(artifacts, portfolio)
 
 
+def _normalize_snapshot(snapshot: dict) -> dict:
+    recommendations = pd.DataFrame(snapshot.get("recommendations", []))
+    watchlist = pd.DataFrame(snapshot.get("watchlist", []))
+
+    if not recommendations.empty:
+        if "conviction_label" not in recommendations.columns:
+            recommendations["conviction_label"] = "Developing"
+        if "opportunity_score" not in recommendations.columns:
+            recommendations["opportunity_score"] = recommendations.get("fused_confidence", 0)
+        snapshot["recommendations"] = recommendations.to_dict(orient="records")
+
+    if not watchlist.empty:
+        if "conviction_label" not in watchlist.columns:
+            watchlist["conviction_label"] = "Developing"
+        if "opportunity_score" not in watchlist.columns:
+            watchlist["opportunity_score"] = watchlist.get("fused_confidence", 0)
+        snapshot["watchlist"] = watchlist.to_dict(orient="records")
+
+    snapshot.setdefault("hourly_state", {"deltas": [], "as_of": None})
+    return snapshot
+
+
 def render_app(snapshot: dict) -> None:
     if st is None:  # pragma: no cover
         raise RuntimeError("streamlit is required to render the dashboard. Install requirements.txt first.")
+    snapshot = _normalize_snapshot(snapshot)
     inject_styles()
     require_login()
 
