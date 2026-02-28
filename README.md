@@ -40,6 +40,10 @@ src/
 tests/
 ```
 
+Architecture and workflow reference:
+
+- [docs/WORKFLOW.md](/Users/mithunghosh/Documents/Stock_agent/codex%20stock%20agent/docs/WORKFLOW.md)
+
 ## Setup
 
 ```bash
