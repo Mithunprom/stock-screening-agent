@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { CandlestickPanel } from "@/components/candlestick-panel";
 import { NewsFeed } from "@/components/news-feed";
 import { ActionBadge, ConvictionBadge, RiskBadge } from "@/components/status-badge";
+import { TickerWatchControls } from "@/components/ticker-watch-controls";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDashboardPayload, getLatestNews, getSignalSummary } from "@/lib/server/research-store";
 import { formatCurrency, formatPercent } from "@/lib/utils";
@@ -80,6 +81,7 @@ export default async function TickerPage({ params }: { params: { ticker: string 
                 ))}
               </div>
             </div>
+            <TickerWatchControls ticker={ticker} />
           </CardContent>
         </Card>
       </div>

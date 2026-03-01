@@ -3,9 +3,10 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BellRing, CandlestickChart, LayoutDashboard, MoonStar, ShieldAlert, SunMedium } from "lucide-react";
+import { BellRing, CandlestickChart, CreditCard, LayoutDashboard, MoonStar, ShieldAlert, SunMedium, UserRound } from "lucide-react";
 import { useTheme } from "next-themes";
 
+import { LogoutButton } from "@/components/logout-button";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -13,12 +14,19 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/screener", label: "Screener", icon: CandlestickChart },
   { href: "/watchlist", label: "Watchlist", icon: BellRing },
-  { href: "/portfolio", label: "Paper Portfolio", icon: ShieldAlert }
+  { href: "/portfolio", label: "Paper Portfolio", icon: ShieldAlert },
+  { href: "/account", label: "Account", icon: UserRound },
+  { href: "/pricing", label: "Pricing", icon: CreditCard }
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
+  const isAuthPage = pathname.startsWith("/login");
+
+  if (isAuthPage) {
+    return <div className="min-h-screen bg-background text-foreground">{children}</div>;
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -57,6 +65,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <Button variant="outline" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
                   {theme === "dark" ? <SunMedium className="size-4" /> : <MoonStar className="size-4" />}
                 </Button>
+                <LogoutButton />
               </div>
             </div>
             <nav className="mt-4 flex gap-2 overflow-x-auto lg:hidden">
@@ -75,6 +84,23 @@ export function AppShell({ children }: { children: ReactNode }) {
             </nav>
           </header>
           <main className="flex-1 px-4 py-6 lg:px-8">{children}</main>
+          <div className="sticky bottom-0 z-40 border-t border-border/60 bg-background/95 px-4 py-3 backdrop-blur lg:hidden">
+            <div className="grid grid-cols-4 gap-2">
+              {navItems.slice(0, 4).map(({ href, label, icon: Icon }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className={cn(
+                    "flex flex-col items-center gap-1 rounded-2xl px-2 py-2 text-xs",
+                    pathname === href ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                  )}
+                >
+                  <Icon className="size-4" />
+                  {label}
+                </Link>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>

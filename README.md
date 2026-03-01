@@ -3,6 +3,7 @@
 Institutional-style, no-broker, no-auto-trading research product for US equities. The repo now contains:
 
 - a Python research engine and scheduler
+- a Python FastAPI service for low-latency market/news/signals/watchlist endpoints
 - a premium Next.js frontend for dashboard, screener, ticker detail, watchlist, and paper portfolio UX
 - API routes and sample-mode data so the product works without paid keys
 
@@ -38,6 +39,7 @@ web/
   src/lib/
 src/
   config.py
+  api_service/
   data/
   features/
   models/
@@ -60,6 +62,13 @@ Architecture and workflow reference:
 python3.11 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+```
+
+### Python API service
+
+```bash
+source .venv/bin/activate
+python -m src.api_service
 ```
 
 ### Next.js product UI
@@ -113,6 +122,13 @@ cd web
 npm run dev
 ```
 
+### FastAPI backend
+
+```bash
+source .venv/bin/activate
+python -m src.api_service
+```
+
 Core product screens:
 
 - `/` dashboard
@@ -120,6 +136,9 @@ Core product screens:
 - `/ticker/[ticker]`
 - `/watchlist`
 - `/portfolio`
+- `/account`
+- `/pricing`
+- `/login`
 
 ### API endpoints
 
@@ -135,6 +154,8 @@ The Next.js app exposes:
 - `/api/watchlist`
 - `/api/preferences`
 - `/api/stream/updates?tickers=AAPL,NVDA,LMT`
+
+The dedicated FastAPI service exposes the same paths under `http://localhost:8000/api/...`.
 
 ### Research jobs
 
@@ -198,6 +219,7 @@ If you want a stricter scheduler, use a workflow runner that supports calendars 
 - Watch / consider / invalidated language only. No broker connectivity, no real execution.
 - Data health and model freshness are surfaced as trust markers.
 - Alerts use per-ticker thresholds plus dedupe/cooldown logic driven by the watchlist preferences file.
+- Session auth and billing pages are scaffolding only. They are intentionally non-broker, non-payment-integrated placeholders ready for a future auth/billing provider.
 
 ## Email Examples
 
@@ -237,20 +259,23 @@ Disclaimer: research only, not investment advice, no real trades are executed.
 
 ## Free Hosting
 
-Recommended default for the new UI: Vercel for `web/`, with the Python research jobs continuing on GitHub Actions or another scheduler.
+Recommended default for the new UI: Vercel for `web/`, with the Python FastAPI service on Railway/Render/Fly.io and the research jobs continuing on GitHub Actions or another scheduler.
 
 Why:
 
 - clean fit for Next.js
 - fast edge delivery
 - straightforward preview deployments
+- keeps UI and research APIs cleanly separated
 
 Deployment steps:
 
 1. Push this repo to GitHub.
 2. Deploy `web/` on Vercel.
-3. Keep the Python hourly/daily workflows on GitHub Actions.
-4. Point both layers at the same shared-state branch if you want the web UI to mirror the scheduler outputs.
+3. Deploy `src.api_service` on a Python host.
+4. Set `NEXT_PUBLIC_API_BASE_URL` and `API_BASE_URL` in the frontend deployment.
+5. Keep the Python hourly/daily workflows on GitHub Actions.
+6. Point both layers at the same shared-state branch if you want the web UI to mirror the scheduler outputs.
 
 Your repo is already on GitHub here:
 
@@ -259,6 +284,7 @@ Your repo is already on GitHub here:
 Recommended deployment for cross-device access:
 
 - Vercel hosts the Next.js UI
+- FastAPI hosts the market/news/signals/watchlist service
 - GitHub Actions runs the daily and hourly jobs
 - SMTP sends the email alerts
 
@@ -312,6 +338,7 @@ Other free options:
 References:
 
 - [Vercel for Next.js](https://vercel.com/docs/frameworks/nextjs)
+- [FastAPI](https://fastapi.tiangolo.com/)
 - [Hugging Face Streamlit Spaces note](https://huggingface.co/docs/hub/spaces-sdks-streamlit)
 - [Render free services](https://render.com/docs/free)
 

@@ -1,5 +1,8 @@
 import { getQuote } from "@/lib/server/research-store";
 
+import { proxyBackend } from "@/lib/server/backend";
+import { getQuote } from "@/lib/server/research-store";
+
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
@@ -9,6 +12,17 @@ export async function GET(request: Request) {
     .map((item) => item.trim().toUpperCase())
     .filter(Boolean)
     .slice(0, 8);
+
+  const proxied = await proxyBackend(`/api/stream/updates?tickers=${tickers.join(",")}`);
+  if (proxied?.ok && proxied.body) {
+    return new Response(proxied.body, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive"
+      }
+    });
+  }
 
   const stream = new ReadableStream({
     async start(controller) {

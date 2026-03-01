@@ -18,6 +18,7 @@ import type {
   SignalSummary,
   UserPreferences
 } from "@/lib/types";
+import { fetchBackend } from "@/lib/server/backend";
 import { withCache } from "@/lib/server/cache";
 
 const repoRoot = path.resolve(process.cwd(), "..");
@@ -43,8 +44,11 @@ async function writeJson(name: string, payload: unknown) {
 
 export async function getDashboardPayload(): Promise<DashboardPayload> {
   return withCache("dashboard", 15_000, async () => {
+    const remote = await fetchBackend<DashboardPayload>("/api/dashboard");
+    if (remote) {
+      return remote;
+    }
     const latest = await readJson<Record<string, unknown>>("latest_snapshot");
-    const hourly = await readJson<Record<string, unknown>>("hourly_state");
     if (!latest) {
       return getSampleDashboard();
     }
@@ -79,6 +83,10 @@ export async function getDashboardPayload(): Promise<DashboardPayload> {
 
 export async function getQuote(ticker: string): Promise<QuotePayload> {
   return withCache(`quote:${ticker}`, 5_000, async () => {
+    const remote = await fetchBackend<QuotePayload>(`/api/market/quote?ticker=${encodeURIComponent(ticker)}`);
+    if (remote) {
+      return remote;
+    }
     const dashboard = await getDashboardPayload();
     const row = dashboard.recommendations.find((item) => item.ticker === ticker);
     if (!row) {
@@ -95,10 +103,22 @@ export async function getQuote(ticker: string): Promise<QuotePayload> {
 }
 
 export async function getCandles(ticker: string, range: string, interval: string): Promise<Candle[]> {
-  return withCache(`candles:${ticker}:${range}:${interval}`, 20_000, async () => getSampleCandles(ticker, range, interval));
+  return withCache(`candles:${ticker}:${range}:${interval}`, 20_000, async () => {
+    const remote = await fetchBackend<{ candles: Candle[] }>(
+      `/api/market/candles?ticker=${encodeURIComponent(ticker)}&range=${encodeURIComponent(range)}&interval=${encodeURIComponent(interval)}`
+    );
+    if (remote?.candles?.length) {
+      return remote.candles;
+    }
+    return getSampleCandles(ticker, range, interval);
+  });
 }
 
 export async function getTopVolatile(limit = 20): Promise<Recommendation[]> {
+  const remote = await fetchBackend<{ rows: Recommendation[] }>(`/api/screener/top-volatile?window=5d&limit=${limit}`);
+  if (remote?.rows?.length) {
+    return remote.rows;
+  }
   const dashboard = await getDashboardPayload();
   return [...dashboard.recommendations]
     .sort((a, b) => (b.rv_5d ?? 0) - (a.rv_5d ?? 0))
@@ -106,6 +126,10 @@ export async function getTopVolatile(limit = 20): Promise<Recommendation[]> {
 }
 
 export async function getLatestNews(tickers: string[] = []): Promise<NewsItem[]> {
+  const remote = await fetchBackend<{ rows: NewsItem[] }>(`/api/news/latest?tickers=${tickers.join(",")}`);
+  if (remote?.rows) {
+    return remote.rows;
+  }
   const dashboard = await getDashboardPayload();
   const feed = dashboard.news.length ? dashboard.news : buildNewsFromRecommendations(dashboard.recommendations);
   if (!tickers.length) {
@@ -115,6 +139,10 @@ export async function getLatestNews(tickers: string[] = []): Promise<NewsItem[]>
 }
 
 export async function getSignalSummary(ticker: string): Promise<SignalSummary> {
+  const remote = await fetchBackend<SignalSummary>(`/api/signals/summary?ticker=${encodeURIComponent(ticker)}`);
+  if (remote) {
+    return remote;
+  }
   const dashboard = await getDashboardPayload();
   const row = dashboard.recommendations.find((item) => item.ticker === ticker);
   if (!row) {
@@ -150,6 +178,10 @@ export async function getSignalSummary(ticker: string): Promise<SignalSummary> {
 }
 
 export async function getUserPreferences(): Promise<UserPreferences> {
+  const remote = await fetchBackend<UserPreferences>("/api/preferences");
+  if (remote) {
+    return remote;
+  }
   const stored = await readJson<UserPreferences>("frontend_preferences");
   if (stored) {
     return stored;
@@ -158,11 +190,19 @@ export async function getUserPreferences(): Promise<UserPreferences> {
 }
 
 export async function saveUserPreferences(preferences: UserPreferences): Promise<UserPreferences> {
+  const remote = await fetchBackend<UserPreferences>("/api/preferences", { method: "POST", body: JSON.stringify(preferences) });
+  if (remote) {
+    return remote;
+  }
   await writeJson("frontend_preferences", preferences);
   return preferences;
 }
 
 export async function updateWatchlistPreference(payload: AlertPreference): Promise<UserPreferences> {
+  const remote = await fetchBackend<AlertPreference[]>("/api/watchlist", { method: "POST", body: JSON.stringify(payload) });
+  if (remote) {
+    return { ...(await getUserPreferences()), watchlist: remote as unknown as UserPreferences["watchlist"] };
+  }
   const preferences = await getUserPreferences();
   const next = preferences.watchlist.filter((item) => item.ticker !== payload.ticker);
   next.unshift(payload);
