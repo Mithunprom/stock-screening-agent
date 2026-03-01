@@ -1,6 +1,10 @@
 # Stock Screening + Research + Alerting Agent
 
-Institutional-style, no-broker, no-auto-trading research agent for US equities. The system produces daily volatility screens, hourly delta alerts during market hours, model-based watchlists, and a constrained paper portfolio.
+Institutional-style, no-broker, no-auto-trading research product for US equities. The repo now contains:
+
+- a Python research engine and scheduler
+- a premium Next.js frontend for dashboard, screener, ticker detail, watchlist, and paper portfolio UX
+- API routes and sample-mode data so the product works without paid keys
 
 ## Scope and Safety
 
@@ -28,6 +32,10 @@ Institutional-style, no-broker, no-auto-trading research agent for US equities. 
 ## Repository Layout
 
 ```text
+web/
+  src/app/
+  src/components/
+  src/lib/
 src/
   config.py
   data/
@@ -46,10 +54,21 @@ Architecture and workflow reference:
 
 ## Setup
 
+### Python research engine
+
 ```bash
 python3.11 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+```
+
+### Next.js product UI
+
+```bash
+cd web
+npm install
+cp .env.example .env.local
+npm run dev
 ```
 
 ## Environment Variables
@@ -87,6 +106,38 @@ export SCREENER_MAX_GROSS_PCT=0.60
 
 ## Run
 
+### Frontend
+
+```bash
+cd web
+npm run dev
+```
+
+Core product screens:
+
+- `/` dashboard
+- `/screener`
+- `/ticker/[ticker]`
+- `/watchlist`
+- `/portfolio`
+
+### API endpoints
+
+The Next.js app exposes:
+
+- `/api/dashboard`
+- `/api/market/quote?ticker=AAPL`
+- `/api/market/candles?ticker=AAPL&interval=1h&range=1M`
+- `/api/screener/top-volatile?window=5d&limit=20`
+- `/api/news/latest?tickers=AAPL,NVDA`
+- `/api/signals/summary?ticker=AAPL`
+- `/api/portfolio/state`
+- `/api/watchlist`
+- `/api/preferences`
+- `/api/stream/updates?tickers=AAPL,NVDA,LMT`
+
+### Research jobs
+
 Daily dry-run:
 
 ```bash
@@ -97,12 +148,6 @@ Hourly dry-run:
 
 ```bash
 python -m src.pipelines.hourly_job --dry-run
-```
-
-Dashboard app:
-
-```bash
-streamlit run app.py
 ```
 
 Force the hourly job to render even outside market hours:
@@ -139,43 +184,73 @@ Notes:
 
 If you want a stricter scheduler, use a workflow runner that supports calendars and timezones explicitly.
 
-## Dry-run Behavior
+## Dry-run / Sample-mode Behavior
 
 - If SMTP settings are missing or `--dry-run` is used, emails are printed to stdout.
 - If market/news APIs are unavailable, the system falls back to cached data and then to deterministic sample data so the report still renders.
-- The dashboard uses the same offline-safe pipeline and reads the paper portfolio state from `.state/paper_portfolio.json`.
+- The Next.js UI reads from `.state/shared/latest_snapshot.json` and falls back to deterministic sample data if no snapshot exists.
+- Candlestick endpoints always degrade to deterministic sample candles when live intraday data is unavailable.
+- Watchlist preferences are stored in `.state/shared/frontend_preferences.json`.
+
+## Product UX Notes
+
+- One candlestick chart per ticker detail page. No multi-ticker overlays.
+- Watch / consider / invalidated language only. No broker connectivity, no real execution.
+- Data health and model freshness are surfaced as trust markers.
+- Alerts use per-ticker thresholds plus dedupe/cooldown logic driven by the watchlist preferences file.
+
+## Email Examples
+
+### Hourly digest
+
+```text
+Subject: Hourly Update — 10:00 ET — Signals & Risk
+
+## Status
+Kill-switch active: False
+Intraday drawdown: 1.40%
+Gross exposure: 42.00%
+
+## Material Changes
+| ticker | fused_confidence | risk_label | action          | change_reason                            |
+|:-------|:-----------------|:-----------|:----------------|:-----------------------------------------|
+| LMT    | 74%              | OK         | CONSIDER ENTRY  | Defense tape + positive factor spread    |
+| NVDA   | 69%              | OK         | WATCH           | Leadership sector + supportive analyst   |
+
+Disclaimer: research only, not investment advice, no real trades are executed.
+```
+
+### Major catalyst alert
+
+```text
+Subject: Major Catalyst / Signal Alert — 11:00 ET
+
+## Event-Driven Alerts
+Only tracked tickers that crossed your configured thresholds are included below.
+
+| ticker | action          | risk_label | fused_confidence | catalyst            | alert_reason                               |
+|:-------|:----------------|:-----------|:-----------------|:--------------------|:-------------------------------------------|
+| LMT    | CONSIDER ENTRY  | OK         | 74%              | geopolitical shock  | major catalyst: geopolitical shock, confidence delta 8% |
+
+Disclaimer: research only, not investment advice, no real trades are executed.
+```
 
 ## Free Hosting
 
-Recommended default: Streamlit Community Cloud.
+Recommended default for the new UI: Vercel for `web/`, with the Python research jobs continuing on GitHub Actions or another scheduler.
 
 Why:
 
-- simplest deployment path for this app
-- free tier
-- works directly from a GitHub repo
-- supports private app sharing controls and secret management
+- clean fit for Next.js
+- fast edge delivery
+- straightforward preview deployments
 
 Deployment steps:
 
 1. Push this repo to GitHub.
-2. Create a Streamlit Community Cloud app pointing at `app.py`.
-3. In Streamlit app secrets, set:
-
-```toml
-APP_USERNAME = "your-login"
-APP_PASSWORD = "your-password"
-GITHUB_STATE_REPO = "Mithunprom/stock-screening-agent"
-GITHUB_STATE_BRANCH = "state"
-SMTP_HOST = "..."
-SMTP_PORT = "587"
-SMTP_USER = "..."
-SMTP_PASS = "..."
-EMAIL_FROM = "..."
-EMAIL_TO = "..."
-```
-
-4. Open the deployed URL from any device and log in with `APP_USERNAME` / `APP_PASSWORD`.
+2. Deploy `web/` on Vercel.
+3. Keep the Python hourly/daily workflows on GitHub Actions.
+4. Point both layers at the same shared-state branch if you want the web UI to mirror the scheduler outputs.
 
 Your repo is already on GitHub here:
 
@@ -183,7 +258,7 @@ Your repo is already on GitHub here:
 
 Recommended deployment for cross-device access:
 
-- Streamlit Community Cloud hosts the dashboard UI
+- Vercel hosts the Next.js UI
 - GitHub Actions runs the daily and hourly jobs
 - SMTP sends the email alerts
 
@@ -236,8 +311,7 @@ Other free options:
 
 References:
 
-- [Streamlit Community Cloud](https://docs.streamlit.io/deploy/streamlit-community-cloud)
-- [Streamlit sharing and privacy](https://docs.streamlit.io/deploy/streamlit-community-cloud/share-your-app)
+- [Vercel for Next.js](https://vercel.com/docs/frameworks/nextjs)
 - [Hugging Face Streamlit Spaces note](https://huggingface.co/docs/hub/spaces-sdks-streamlit)
 - [Render free services](https://render.com/docs/free)
 

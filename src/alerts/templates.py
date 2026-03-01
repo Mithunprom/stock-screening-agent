@@ -130,3 +130,24 @@ def render_hourly_email(as_of: datetime, deltas: pd.DataFrame, risk_summary: dic
     lines.append("")
     lines.append("Disclaimer: research only, not investment advice, no real trades are executed.")
     return subject, "\n".join(lines)
+
+
+def render_event_alert_email(as_of: datetime, alerts: pd.DataFrame) -> tuple[str, str]:
+    subject = f"Major Catalyst / Signal Alert — {format_hour_et(as_of)}"
+    lines = [
+        "## Event-Driven Alerts",
+        "Only tracked tickers that crossed your configured thresholds are included below.",
+        "",
+    ]
+    if alerts.empty:
+        lines.append("No tracked tickers crossed a configured threshold.")
+    else:
+        lines.append(
+            render_table(
+                alerts,
+                ["ticker", "action", "risk_label", "fused_confidence", "catalyst", "alert_reason"],
+            )
+        )
+    lines.append("")
+    lines.append("Disclaimer: research only, not investment advice, no real trades are executed.")
+    return subject, "\n".join(lines)
