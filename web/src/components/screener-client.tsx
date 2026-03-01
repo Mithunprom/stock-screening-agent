@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import type { Route } from "next";
 
 import { ActionBadge, ConvictionBadge, RiskBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -86,7 +87,7 @@ export function ScreenerClient({ rows }: { rows: Recommendation[] }) {
               {filtered.map((row, index) => (
                 <tr key={row.ticker} className={index % 2 === 0 ? "bg-background/40" : "bg-card/40"}>
                   <td className="px-4 py-4 font-semibold">
-                    <Link href={`/ticker/${row.ticker}`} className="text-primary">
+                    <Link href={`/ticker/${row.ticker}` as Route} className="text-primary">
                       {row.ticker}
                     </Link>
                   </td>

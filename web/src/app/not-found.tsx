@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Route } from "next";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,7 +13,7 @@ export default function NotFound() {
           <h1 className="font-display text-3xl font-semibold">This research view is not available yet.</h1>
           <p className="text-muted-foreground">The requested ticker was not found in the current snapshot. Return to the dashboard or screener and open a tracked name.</p>
           <Button asChild>
-            <Link href="/">Back to dashboard</Link>
+            <Link href={"/" as Route}>Back to dashboard</Link>
           </Button>
         </CardContent>
       </Card>

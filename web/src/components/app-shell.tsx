@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
+import type { Route } from "next";
 import { usePathname } from "next/navigation";
 import { BellRing, CandlestickChart, CreditCard, LayoutDashboard, MoonStar, ShieldAlert, SunMedium, UserRound } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -11,12 +12,12 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/screener", label: "Screener", icon: CandlestickChart },
-  { href: "/watchlist", label: "Watchlist", icon: BellRing },
-  { href: "/portfolio", label: "Paper Portfolio", icon: ShieldAlert },
-  { href: "/account", label: "Account", icon: UserRound },
-  { href: "/pricing", label: "Pricing", icon: CreditCard }
+  { href: "/" as Route, label: "Dashboard", icon: LayoutDashboard },
+  { href: "/screener" as Route, label: "Screener", icon: CandlestickChart },
+  { href: "/watchlist" as Route, label: "Watchlist", icon: BellRing },
+  { href: "/portfolio" as Route, label: "Paper Portfolio", icon: ShieldAlert },
+  { href: "/account" as Route, label: "Account", icon: UserRound },
+  { href: "/pricing" as Route, label: "Pricing", icon: CreditCard }
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {

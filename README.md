@@ -80,6 +80,23 @@ cp .env.example .env.local
 npm run dev
 ```
 
+Auth.js local defaults:
+
+```bash
+APP_DEMO_EMAIL=demo@stockagent.local
+APP_DEMO_PASSWORD=demo-password
+AUTH_SECRET=replace-me-with-a-long-random-string
+```
+
+Optional Auth.js OAuth providers:
+
+```bash
+AUTH_GITHUB_ID=
+AUTH_GITHUB_SECRET=
+AUTH_GOOGLE_ID=
+AUTH_GOOGLE_SECRET=
+```
+
 ## Environment Variables
 
 Required only for live email sending:
@@ -129,6 +146,31 @@ source .venv/bin/activate
 python -m src.api_service
 ```
 
+### First local run
+
+Terminal 1:
+
+```bash
+cd /Users/mithunghosh/Documents/Stock_agent/codex\ stock\ agent
+source .venv/bin/activate
+python -m src.api_service
+```
+
+Terminal 2:
+
+```bash
+cd /Users/mithunghosh/Documents/Stock_agent/codex\ stock\ agent/web
+cp .env.example .env.local
+npm run dev
+```
+
+Then open [http://localhost:3000](http://localhost:3000) and log in with:
+
+```text
+demo@stockagent.local
+demo-password
+```
+
 Core product screens:
 
 - `/` dashboard
@@ -154,6 +196,7 @@ The Next.js app exposes:
 - `/api/watchlist`
 - `/api/preferences`
 - `/api/stream/updates?tickers=AAPL,NVDA,LMT`
+- `/api/billing/checkout` (scaffolding only)
 
 The dedicated FastAPI service exposes the same paths under `http://localhost:8000/api/...`.
 
@@ -220,6 +263,8 @@ If you want a stricter scheduler, use a workflow runner that supports calendars 
 - Data health and model freshness are surfaced as trust markers.
 - Alerts use per-ticker thresholds plus dedupe/cooldown logic driven by the watchlist preferences file.
 - Session auth and billing pages are scaffolding only. They are intentionally non-broker, non-payment-integrated placeholders ready for a future auth/billing provider.
+- Auth.js now replaces the custom demo-cookie auth. The current local setup uses an Auth.js credentials provider, and the app can switch to GitHub or Google OAuth through environment variables without rewriting the app shell.
+- Stripe is not wired live yet, but billing configuration hooks now exist so pricing/account pages do not need to be redesigned later.
 
 ## Email Examples
 

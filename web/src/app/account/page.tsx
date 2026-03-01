@@ -22,7 +22,7 @@ export default async function AccountPage() {
           <CardContent className="space-y-3 text-sm">
             <div className="rounded-2xl border border-border/60 p-4">
               <p className="text-muted-foreground">Signed in as</p>
-              <p className="mt-2 font-semibold">{session?.email ?? "demo@stockagent.local"}</p>
+              <p className="mt-2 font-semibold">{session?.user?.email ?? "demo@stockagent.local"}</p>
             </div>
             <div className="rounded-2xl border border-border/60 p-4">
               <p className="text-muted-foreground">Risk tolerance</p>

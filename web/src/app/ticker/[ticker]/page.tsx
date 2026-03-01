@@ -8,8 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDashboardPayload, getLatestNews, getSignalSummary } from "@/lib/server/research-store";
 import { formatCurrency, formatPercent } from "@/lib/utils";
 
-export default async function TickerPage({ params }: { params: { ticker: string } }) {
-  const ticker = params.ticker.toUpperCase();
+export default async function TickerPage({ params }: { params: Promise<{ ticker: string }> }) {
+  const { ticker: rawTicker } = await params;
+  const ticker = rawTicker.toUpperCase();
   const dashboard = await getDashboardPayload();
   const item = dashboard.recommendations.find((row) => row.ticker === ticker);
   if (!item) {

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Route } from "next";
 import { ArrowRight } from "lucide-react";
 
 import { ActionBadge, ConvictionBadge, RiskBadge } from "@/components/status-badge";
@@ -7,6 +8,7 @@ import type { Recommendation } from "@/lib/types";
 import { formatCurrency, formatPercent } from "@/lib/utils";
 
 export function TopOpportunityCard({ item }: { item: Recommendation }) {
+  const tickerHref = `/ticker/${item.ticker}` as Route;
   return (
     <Card className="h-full bg-hero-glow">
       <CardHeader>
@@ -46,7 +48,7 @@ export function TopOpportunityCard({ item }: { item: Recommendation }) {
           <li>Volatility: 5D realized vol {formatPercent(item.rv_5d)} with ATR {formatPercent(item.atr_pct)}.</li>
           <li>News: {item.catalyst || "No fresh catalyst"}.</li>
         </ul>
-        <Link href={`/ticker/${item.ticker}`} className="inline-flex items-center gap-2 text-sm font-medium text-primary">
+        <Link href={tickerHref} className="inline-flex items-center gap-2 text-sm font-medium text-primary">
           Open detail <ArrowRight className="size-4" />
         </Link>
       </CardContent>

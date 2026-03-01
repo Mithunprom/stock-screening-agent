@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Route } from "next";
 
 import { ActionBadge, RiskBadge } from "@/components/status-badge";
 import type { Recommendation } from "@/lib/types";
@@ -22,7 +23,7 @@ export function VolatilityTable({ rows }: { rows: Recommendation[] }) {
             {rows.map((row, index) => (
               <tr key={row.ticker} className={index % 2 === 0 ? "bg-background/50" : "bg-card/50"}>
                 <td className="px-4 py-3 font-medium">
-                  <Link href={`/ticker/${row.ticker}`} className="text-primary">
+                  <Link href={`/ticker/${row.ticker}` as Route} className="text-primary">
                     {row.ticker}
                   </Link>
                 </td>

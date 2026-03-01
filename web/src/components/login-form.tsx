@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,14 +18,13 @@ export function LoginForm({ hintEmail }: { hintEmail: string }) {
   async function submit() {
     setLoading(true);
     setError(null);
-    const response = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password })
+    const response = await signIn("credentials", {
+      email,
+      password,
+      redirect: false
     });
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({ error: "Login failed" }));
-      setError(payload.error ?? "Login failed");
+    if (!response || response.error) {
+      setError(response?.error ?? "Login failed");
       setLoading(false);
       return;
     }
@@ -50,7 +50,7 @@ export function LoginForm({ hintEmail }: { hintEmail: string }) {
         <Button onClick={submit} className="w-full" disabled={loading}>
           {loading ? "Signing in..." : "Sign in"}
         </Button>
-        <p className="text-xs text-muted-foreground">Scaffolding mode: this uses a demo session cookie so the product can support gated access before a full auth provider is wired in.</p>
+        <p className="text-xs text-muted-foreground">Local mode uses an Auth.js credentials provider. You can switch to GitHub or Google OAuth by setting the auth environment variables.</p>
       </CardContent>
     </Card>
   );
