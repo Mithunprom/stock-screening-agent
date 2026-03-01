@@ -128,6 +128,7 @@ export SCREENER_MIN_AVG_DOLLAR_VOLUME=5000000
 export SCREENER_MIN_PRICE=2
 export SCREENER_MAX_POS_PCT=0.20
 export SCREENER_MAX_GROSS_PCT=0.60
+export API_CORS_ORIGINS=http://localhost:3000
 ```
 
 ## Run
@@ -256,6 +257,88 @@ Notes:
 - Market holidays and weekends are handled inside `src/data/calendar.py`.
 
 If you want a stricter scheduler, use a workflow runner that supports calendars and timezones explicitly.
+
+## Deployment
+
+GitHub is the correct source-of-truth for the code, but it cannot host this full stack by itself. GitHub Pages is static-only, and GitHub Actions jobs are ephemeral. The practical setup is:
+
+- GitHub repository for source + Actions schedules
+- Render for the FastAPI backend
+- Vercel for the Next.js frontend
+
+### Backend on Render
+
+This repo now includes [render.yaml](/Users/mithunghosh/Documents/Stock_agent/codex%20stock%20agent/render.yaml), so you can deploy the API directly from GitHub.
+
+Steps:
+
+1. Go to [Render Dashboard](https://dashboard.render.com/).
+2. Create a new `Blueprint` or `Web Service` from `Mithunprom/stock-screening-agent`.
+3. If using the blueprint, Render will read `render.yaml` automatically.
+4. Set environment variables:
+   - `API_CORS_ORIGINS=https://your-vercel-app.vercel.app`
+   - `APP_DEMO_PASSWORD`
+   - `SMTP_HOST`
+   - `SMTP_PORT`
+   - `SMTP_USER`
+   - `SMTP_PASS`
+   - `EMAIL_FROM`
+   - `EMAIL_TO`
+5. Deploy and note the backend URL, for example:
+   - `https://stock-screening-agent-api.onrender.com`
+
+The backend health check is:
+
+```text
+https://your-render-service.onrender.com/health
+```
+
+### Frontend on Vercel
+
+The Next.js app lives under `web/`, and [web/vercel.json](/Users/mithunghosh/Documents/Stock_agent/codex%20stock%20agent/web/vercel.json) is included for basic production headers.
+
+Steps:
+
+1. Go to [Vercel Dashboard](https://vercel.com/new).
+2. Import `Mithunprom/stock-screening-agent`.
+3. Set the project `Root Directory` to `web`.
+4. Add environment variables:
+   - `NEXT_PUBLIC_BASE_URL=https://your-vercel-app.vercel.app`
+   - `NEXT_PUBLIC_API_BASE_URL=https://your-render-service.onrender.com`
+   - `API_BASE_URL=https://your-render-service.onrender.com`
+   - `AUTH_URL=https://your-vercel-app.vercel.app`
+   - `AUTH_SECRET=your-long-random-secret`
+   - `APP_DEMO_EMAIL=demo@stockagent.local`
+   - `APP_DEMO_PASSWORD=your-demo-password`
+5. Deploy.
+
+Optional OAuth providers:
+
+- `AUTH_GITHUB_ID`
+- `AUTH_GITHUB_SECRET`
+- `AUTH_GOOGLE_ID`
+- `AUTH_GOOGLE_SECRET`
+
+### GitHub Actions
+
+Keep using GitHub Actions for the scheduled research jobs. They already run against the repo and update shared state. Make sure these repository secrets are set:
+
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_USER`
+- `SMTP_PASS`
+- `EMAIL_FROM`
+- `EMAIL_TO`
+- `APP_USERNAME`
+- `APP_PASSWORD`
+
+### Recommended order
+
+1. Deploy the backend on Render.
+2. Copy the Render URL into the Vercel frontend environment variables.
+3. Deploy the frontend on Vercel.
+4. Update `API_CORS_ORIGINS` on Render to your final Vercel domain.
+5. Run the GitHub Actions jobs once to seed the latest research state.
 
 ## Dry-run / Sample-mode Behavior
 
