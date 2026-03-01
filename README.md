@@ -148,6 +148,15 @@ python -m src.api_service
 
 ### First local run
 
+If this is the first time you are running the stack on this machine, create the Python environment and install dependencies first:
+
+```bash
+cd /Users/mithunghosh/Documents/Stock_agent/codex\ stock\ agent
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
 Terminal 1:
 
 ```bash
