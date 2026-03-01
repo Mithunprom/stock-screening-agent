@@ -1,0 +1,14 @@
+{
+  "cash": 1000.0,
+  "current_day": "",
+  "day_start_equity": 0.0,
+  "kill_switch_active": false,
+  "positions": {
+    "AAPL": {
+      "avg_entry": 110.0,
+      "quantity": 10.0,
+      "ticker": "AAPL"
+    }
+  },
+  "realized_pnl": 0.0
+}
