@@ -41,4 +41,5 @@ jobs:
           GITHUB_STATE_BRANCH: state
           GITHUB_STATE_TOKEN: ${{ github.token }}
           SCREENER_TIMEZONE: America/Los_Angeles
+          EMAIL_DRY_RUN: "true"
         run: python -m src.pipelines.daily_job
