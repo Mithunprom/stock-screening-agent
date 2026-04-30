@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-04-30T07:57:07.415862-07:00",
+  "as_of": "2026-04-30T08:49:32.794919-07:00",
   "market_context": {
     "qqq_last": 273.9,
     "qqq_ret_1d": 0.014256619144602745,
@@ -86,7 +86,7 @@
     },
     "governance": {
       "drift_check": 0.07596976519346928,
-      "last_update": "2026-04-30T07:57:07.415862-07:00",
+      "last_update": "2026-04-30T08:49:32.794919-07:00",
       "leakage_guard": "strict trailing features and shifted next-period targets",
       "missingness": {
         "catalyst": 0.625,
@@ -123,7 +123,7 @@
   },
   "portfolio_state": {
     "cash": 1000.0,
-    "current_day": "2026-04-29",
+    "current_day": "2026-04-30",
     "day_start_equity": 2631.8,
     "kill_switch_active": false,
     "realized_pnl": 0.0
