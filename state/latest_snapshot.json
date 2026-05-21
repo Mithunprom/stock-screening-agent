@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-05-21T09:10:58.779592-07:00",
+  "as_of": "2026-05-21T09:41:52.491585-07:00",
   "market_context": {
     "qqq_last": 273.9,
     "qqq_ret_1d": 0.014256619144602745,
@@ -86,7 +86,7 @@
     },
     "governance": {
       "drift_check": 0.07596976519346928,
-      "last_update": "2026-05-21T09:10:58.779592-07:00",
+      "last_update": "2026-05-21T09:41:52.491585-07:00",
       "leakage_guard": "strict trailing features and shifted next-period targets",
       "missingness": {
         "catalyst": 0.625,
@@ -123,7 +123,7 @@
   },
   "portfolio_state": {
     "cash": 1000.0,
-    "current_day": "2026-05-20",
+    "current_day": "2026-05-21",
     "day_start_equity": 2631.8,
     "kill_switch_active": false,
     "realized_pnl": 0.0
@@ -152,13 +152,13 @@
       "fused_confidence": 0.9999999979388463,
       "hold_horizon": "3-10 days",
       "invalidation_price": 156.82142857142858,
-      "opportunity_score": 0.5282633245642004,
+      "opportunity_score": 0.5282633381201806,
       "risk_label": "RISKY",
       "rv_5d": 0.17279704694473402,
       "sector": "Technology",
       "ticker": "AAPL",
       "ts_score": -0.046210556406053885,
-      "vol_risk_score": 0.8083876510722807,
+      "vol_risk_score": 0.8083875832923801,
       "what_changes": "Fused confidence below 0.50, adverse gap beyond +0.2%, or negative catalyst escalation.",
       "why": "5d realized vol 17.3%, ATR 1.9%, liquidity $0.80B, factor +98729458.73, time-series -0.05, news catalyst company news. AAPL sees notable volume and momentum into the session",
       "xsec_score": 98729458.73250428
@@ -176,16 +176,16 @@
       "fused_confidence": 0.9999999979388463,
       "hold_horizon": "3-10 days",
       "invalidation_price": 162.76285714285717,
-      "opportunity_score": 0.49447163891719526,
+      "opportunity_score": 0.4944718678687101,
       "risk_label": "RISKY",
       "rv_5d": 0.46126365816865317,
       "sector": "Healthcare",
       "ticker": "XLV",
       "ts_score": -0.07876200282546916,
-      "vol_risk_score": 0.9659708960108258,
+      "vol_risk_score": 0.9659697512532517,
       "what_changes": "Fused confidence below 0.50, adverse gap beyond -0.1%, or negative catalyst escalation.",
       "why": "5d realized vol 46.1%, ATR 4.2%, liquidity $2.19B, factor +54133992.76, time-series -0.08, news catalyst company news. XLV sees notable volume and momentum into the session",
-      "xsec_score": 54133992.76188931
+      "xsec_score": 54133992.761889264
     },
     {
       "action": "WATCH",
@@ -200,16 +200,16 @@
       "fused_confidence": 0.9999999979388463,
       "hold_horizon": "3-10 days",
       "invalidation_price": 36.54857142857142,
-      "opportunity_score": 0.49343570822122257,
+      "opportunity_score": 0.4934359546446073,
       "risk_label": "RISKY",
       "rv_5d": 0.4399361159816987,
       "sector": "Financials",
       "ticker": "BAC",
       "ts_score": -0.09326764031208311,
-      "vol_risk_score": 0.7638704062161086,
+      "vol_risk_score": 0.7638691740991849,
       "what_changes": "Fused confidence below 0.50, adverse gap beyond +2.2%, or negative catalyst escalation.",
       "why": "5d realized vol 44.0%, ATR 7.6%, liquidity $0.36B, factor +38722464.96, time-series -0.09, news catalyst company news. BAC sees notable volume and momentum into the session",
-      "xsec_score": 38722464.958365634
+      "xsec_score": 38722464.958365776
     },
     {
       "action": "WATCH",
@@ -233,7 +233,7 @@
       "vol_risk_score": 1.0,
       "what_changes": "Fused confidence below 0.50, adverse gap beyond +0.1%, or negative catalyst escalation.",
       "why": "5d realized vol 15.5%, ATR 2.1%, liquidity $1.29B, factor +3000089.05, time-series -0.04, news catalyst analyst action. CVX sees notable volume and momentum into the session",
-      "xsec_score": 3000089.0462808013
+      "xsec_score": 3000089.0462807566
     },
     {
       "action": "WATCH",
@@ -257,7 +257,7 @@
       "vol_risk_score": 1.0,
       "what_changes": "Fused confidence below 0.50, adverse gap beyond -3.1%, or negative catalyst escalation.",
       "why": "5d realized vol 35.8%, ATR 4.8%, liquidity $0.81B, factor +15585404.69, time-series -0.07, news catalyst analyst action. AMZN sees notable volume and momentum into the session",
-      "xsec_score": 15585404.68909118
+      "xsec_score": 15585404.689091098
     },
     {
       "action": "WATCH",
@@ -281,7 +281,7 @@
       "vol_risk_score": 1.0,
       "what_changes": "Fused confidence below 0.50, adverse gap beyond +0.6%, or negative catalyst escalation.",
       "why": "5d realized vol 72.9%, ATR 6.0%, liquidity $1.52B, factor +33284329.62, time-series -0.16, news catalyst company news. IWM sees notable volume and momentum into the session",
-      "xsec_score": 33284329.615785584
+      "xsec_score": 33284329.615785494
     },
     {
       "action": "WATCH",
@@ -296,16 +296,16 @@
       "fused_confidence": 0.9999999979388463,
       "hold_horizon": "3-10 days",
       "invalidation_price": 112.25571428571428,
-      "opportunity_score": 0.46698193161636564,
+      "opportunity_score": 0.46698193284740985,
       "risk_label": "RISKY",
       "rv_5d": 0.44726486510216623,
       "sector": "Energy",
       "ticker": "XLE",
       "ts_score": -0.0003683896780764806,
-      "vol_risk_score": 0.9732034043972073,
+      "vol_risk_score": 0.9732033982419864,
       "what_changes": "Fused confidence below 0.50, adverse gap beyond +2.2%, or negative catalyst escalation.",
       "why": "5d realized vol 44.7%, ATR 3.2%, liquidity $1.30B, factor +5956766.73, time-series -0.00, news catalyst nan. nan",
-      "xsec_score": 5956766.728030376
+      "xsec_score": 5956766.728030346
     },
     {
       "action": "WATCH",
@@ -320,16 +320,16 @@
       "fused_confidence": 0.9999999979388463,
       "hold_horizon": "3-10 days",
       "invalidation_price": 347.56714285714287,
-      "opportunity_score": 0.466001998763904,
+      "opportunity_score": 0.46600199980576135,
       "risk_label": "RISKY",
       "rv_5d": 0.309566703128536,
       "sector": "Index",
       "ticker": "SPY",
       "ts_score": -0.020809324209249278,
-      "vol_risk_score": 0.9947101091217728,
+      "vol_risk_score": 0.9947101039124864,
       "what_changes": "Fused confidence below 0.50, adverse gap beyond +0.7%, or negative catalyst escalation.",
       "why": "5d realized vol 31.0%, ATR 5.1%, liquidity $4.00B, factor +42269243.76, time-series -0.02, news catalyst nan. nan",
-      "xsec_score": 42269243.76083925
+      "xsec_score": 42269243.760839224
     },
     {
       "action": "WATCH",
@@ -344,16 +344,16 @@
       "fused_confidence": 0.9999999979388463,
       "hold_horizon": "3-10 days",
       "invalidation_price": 22.937142857142856,
-      "opportunity_score": 0.4632468546455412,
+      "opportunity_score": 0.4632559806262275,
       "risk_label": "RISKY",
       "rv_5d": 0.280911104723009,
       "sector": "Technology",
       "ticker": "PLTR",
       "ts_score": -0.06821880956766235,
-      "vol_risk_score": 0.917846512156745,
+      "vol_risk_score": 0.9178008822533135,
       "what_changes": "Fused confidence below 0.50, adverse gap beyond +1.9%, or negative catalyst escalation.",
       "why": "5d realized vol 28.1%, ATR 2.6%, liquidity $0.17B, factor +93369995.91, time-series -0.07, news catalyst nan. nan",
-      "xsec_score": 93369995.90765782
+      "xsec_score": 93369995.90765786
     },
     {
       "action": "WATCH",
@@ -377,7 +377,7 @@
       "vol_risk_score": 1.0,
       "what_changes": "Fused confidence below 0.50, adverse gap beyond +0.1%, or negative catalyst escalation.",
       "why": "5d realized vol 33.8%, ATR 6.9%, liquidity $0.78B, factor +58193497.66, time-series +0.01, news catalyst company news. AMD sees notable volume and momentum into the session",
-      "xsec_score": 58193497.66368917
+      "xsec_score": 58193497.66368914
     },
     {
       "action": "WATCH",
@@ -425,7 +425,7 @@
       "vol_risk_score": 1.0,
       "what_changes": "Fused confidence below 0.50, adverse gap beyond -1.6%, or negative catalyst escalation.",
       "why": "5d realized vol 16.6%, ATR 2.6%, liquidity $0.66B, factor +3196853.69, time-series -0.04, news catalyst nan. nan",
-      "xsec_score": 3196853.6889976263
+      "xsec_score": 3196853.6889976114
     },
     {
       "action": "WATCH",
@@ -449,7 +449,7 @@
       "vol_risk_score": 1.0,
       "what_changes": "Fused confidence below 0.50, adverse gap beyond -0.5%, or negative catalyst escalation.",
       "why": "5d realized vol 30.5%, ATR 3.6%, liquidity $0.89B, factor +4273018.11, time-series -0.07, news catalyst nan. nan",
-      "xsec_score": 4273018.107302081
+      "xsec_score": 4273018.107302044
     },
     {
       "action": "WATCH",
@@ -473,7 +473,7 @@
       "vol_risk_score": 1.0,
       "what_changes": "Fused confidence below 0.50, adverse gap beyond -0.7%, or negative catalyst escalation.",
       "why": "5d realized vol 37.7%, ATR 6.8%, liquidity $3.78B, factor +2716142.12, time-series -0.13, news catalyst nan. nan",
-      "xsec_score": 2716142.124968946
+      "xsec_score": 2716142.1249689013
     },
     {
       "action": "WATCH",
@@ -521,7 +521,7 @@
       "vol_risk_score": 1.0,
       "what_changes": "Fused confidence below 0.50, adverse gap beyond +0.9%, or negative catalyst escalation.",
       "why": "5d realized vol 39.4%, ATR 3.8%, liquidity $0.42B, factor +20621360.39, time-series -0.10, news catalyst nan. nan",
-      "xsec_score": 20621360.390326966
+      "xsec_score": 20621360.390326943
     },
     {
       "action": "WATCH",
@@ -545,7 +545,7 @@
       "vol_risk_score": 1.0,
       "what_changes": "Fused confidence below 0.50, adverse gap beyond +2.2%, or negative catalyst escalation.",
       "why": "5d realized vol 126.9%, ATR 7.0%, liquidity $1.00B, factor +23212574.87, time-series -0.10, news catalyst nan. nan",
-      "xsec_score": 23212574.870792963
+      "xsec_score": 23212574.870792933
     },
     {
       "action": "WATCH",
@@ -569,7 +569,7 @@
       "vol_risk_score": 1.0,
       "what_changes": "Fused confidence below 0.50, adverse gap beyond -1.4%, or negative catalyst escalation.",
       "why": "5d realized vol 48.3%, ATR 7.3%, liquidity $0.65B, factor +23736281.13, time-series -0.19, news catalyst nan. nan",
-      "xsec_score": 23736281.134562347
+      "xsec_score": 23736281.134562466
     },
     {
       "action": "HOLD",
@@ -584,16 +584,16 @@
       "fused_confidence": 2.0611536181902037e-09,
       "hold_horizon": "1-5 days",
       "invalidation_price": 1270.9042857142856,
-      "opportunity_score": 0.013347717289598243,
+      "opportunity_score": 0.01334298775784884,
       "risk_label": "RISKY",
       "rv_5d": 0.40257520849450845,
       "sector": "Technology",
       "ticker": "AVGO",
       "ts_score": -0.04036019938194118,
-      "vol_risk_score": 0.9431126502344144,
+      "vol_risk_score": 0.9431362978931614,
       "what_changes": "Fused confidence below 0.50, adverse gap beyond -3.0%, or negative catalyst escalation.",
       "why": "5d realized vol 40.3%, ATR 4.4%, liquidity $10.21B, factor -177778150.62, time-series -0.04, news catalyst company news. AVGO sees notable volume and momentum into the session",
-      "xsec_score": -177778150.62094155
+      "xsec_score": -177778150.62094152
     },
     {
       "action": "HOLD",
@@ -617,7 +617,7 @@
       "vol_risk_score": 1.0,
       "what_changes": "Fused confidence below 0.50, adverse gap beyond -0.3%, or negative catalyst escalation.",
       "why": "5d realized vol 24.4%, ATR 2.2%, liquidity $3.30B, factor -38021499.36, time-series -0.01, news catalyst company news. COIN sees notable volume and momentum into the session",
-      "xsec_score": -38021499.35739097
+      "xsec_score": -38021499.35739088
     },
     {
       "action": "HOLD",
@@ -641,7 +641,7 @@
       "vol_risk_score": 1.0,
       "what_changes": "Fused confidence below 0.50, adverse gap beyond -0.8%, or negative catalyst escalation.",
       "why": "5d realized vol 16.2%, ATR 3.7%, liquidity $1.02B, factor -23059792.42, time-series +0.08, news catalyst company news. GD sees notable volume and momentum into the session",
-      "xsec_score": -23059792.42303961
+      "xsec_score": -23059792.42303968
     },
     {
       "action": "HOLD",
@@ -656,16 +656,16 @@
       "fused_confidence": 2.0611536181902037e-09,
       "hold_horizon": "1-5 days",
       "invalidation_price": 408.1442857142857,
-      "opportunity_score": -0.027847510181305102,
+      "opportunity_score": -0.027847440529884304,
       "risk_label": "RISKY",
       "rv_5d": 0.785767827131098,
       "sector": "Healthcare",
       "ticker": "UNH",
       "ts_score": -0.23271302467755745,
-      "vol_risk_score": 0.8488958370051988,
+      "vol_risk_score": 0.8488954887480947,
       "what_changes": "Fused confidence below 0.50, adverse gap beyond -0.1%, or negative catalyst escalation.",
       "why": "5d realized vol 78.6%, ATR 7.5%, liquidity $5.27B, factor -5264558.18, time-series -0.23, news catalyst nan. nan",
-      "xsec_score": -5264558.182287842
+      "xsec_score": -5264558.182287902
     },
     {
       "action": "HOLD",
@@ -680,16 +680,16 @@
       "fused_confidence": 2.0611536181902037e-09,
       "hold_horizon": "1-5 days",
       "invalidation_price": 1362.8428571428572,
-      "opportunity_score": -0.028079289124161855,
+      "opportunity_score": -0.028080829773927785,
       "risk_label": "RISKY",
       "rv_5d": 0.5130709282146297,
       "sector": "Technology",
       "ticker": "NVDA",
       "ts_score": -0.0037163774031249764,
-      "vol_risk_score": 0.9846587508799542,
+      "vol_risk_score": 0.9846664541287838,
       "what_changes": "Fused confidence below 0.50, adverse gap beyond -1.4%, or negative catalyst escalation.",
       "why": "5d realized vol 51.3%, ATR 3.9%, liquidity $7.50B, factor -95887656.00, time-series -0.00, news catalyst nan. nan",
-      "xsec_score": -95887655.9961083
+      "xsec_score": -95887655.99610831
     },
     {
       "action": "HOLD",
@@ -713,7 +713,7 @@
       "vol_risk_score": 1.0,
       "what_changes": "Fused confidence below 0.50, adverse gap beyond +1.0%, or negative catalyst escalation.",
       "why": "5d realized vol 19.1%, ATR 3.4%, liquidity $2.87B, factor -38797979.56, time-series +0.01, news catalyst nan. nan",
-      "xsec_score": -38797979.559883334
+      "xsec_score": -38797979.55988347
     },
     {
       "action": "HOLD",
@@ -737,7 +737,7 @@
       "vol_risk_score": 1.0,
       "what_changes": "Fused confidence below 0.50, adverse gap beyond -0.3%, or negative catalyst escalation.",
       "why": "5d realized vol 13.3%, ATR 2.0%, liquidity $6.93B, factor -87646314.63, time-series -0.05, news catalyst nan. nan",
-      "xsec_score": -87646314.62821153
+      "xsec_score": -87646314.62821151
     },
     {
       "action": "HOLD",
@@ -761,7 +761,7 @@
       "vol_risk_score": 1.0,
       "what_changes": "Fused confidence below 0.50, adverse gap beyond +3.2%, or negative catalyst escalation.",
       "why": "5d realized vol 37.8%, ATR 5.6%, liquidity $5.58B, factor -48869434.58, time-series -0.05, news catalyst nan. nan",
-      "xsec_score": -48869434.57960071
+      "xsec_score": -48869434.57960075
     },
     {
       "action": "HOLD",
@@ -776,16 +776,16 @@
       "fused_confidence": 2.0611536181902037e-09,
       "hold_horizon": "1-5 days",
       "invalidation_price": 237.54142857142853,
-      "opportunity_score": -0.042803268537243006,
+      "opportunity_score": -0.042803275817929476,
       "risk_label": "RISKY",
       "rv_5d": 0.5340974607213328,
       "sector": "Index",
       "ticker": "QQQ",
       "ts_score": -0.2498249088831089,
-      "vol_risk_score": 0.909271146901005,
+      "vol_risk_score": 0.9092711833044373,
       "what_changes": "Fused confidence below 0.50, adverse gap beyond -0.8%, or negative catalyst escalation.",
       "why": "5d realized vol 53.4%, ATR 6.6%, liquidity $3.49B, factor -75553573.38, time-series -0.25, news catalyst nan. nan",
-      "xsec_score": -75553573.37662406
+      "xsec_score": -75553573.376624
     },
     {
       "action": "HOLD",
@@ -809,7 +809,7 @@
       "vol_risk_score": 1.0,
       "what_changes": "Fused confidence below 0.50, adverse gap beyond +1.3%, or negative catalyst escalation.",
       "why": "5d realized vol 25.2%, ATR 4.3%, liquidity $1.17B, factor -5031439.76, time-series -0.07, news catalyst analyst action. NOC sees notable volume and momentum into the session",
-      "xsec_score": -5031439.763585858
+      "xsec_score": -5031439.763585828
     },
     {
       "action": "HOLD",
@@ -857,7 +857,7 @@
       "vol_risk_score": 1.0,
       "what_changes": "Fused confidence below 0.50, adverse gap beyond -2.8%, or negative catalyst escalation.",
       "why": "5d realized vol 58.7%, ATR 8.5%, liquidity $0.46B, factor -8956855.77, time-series -0.26, news catalyst nan. nan",
-      "xsec_score": -8956855.774310429
+      "xsec_score": -8956855.774310507
     },
     {
       "action": "WATCH",
@@ -881,7 +881,7 @@
       "vol_risk_score": 1.0,
       "what_changes": "Fused confidence below 0.50, adverse gap beyond -0.2%, or negative catalyst escalation.",
       "why": "5d realized vol 19.1%, ATR 1.7%, liquidity $3.64B, factor +1722043.57, time-series -0.06, news catalyst nan. nan",
-      "xsec_score": 1722043.5731580108
+      "xsec_score": 1722043.5731580257
     },
     {
       "action": "WATCH",
@@ -896,16 +896,16 @@
       "fused_confidence": 2.0611536181902037e-09,
       "hold_horizon": "1-5 days",
       "invalidation_price": 206.35142857142858,
-      "opportunity_score": 0.03000332001287989,
+      "opportunity_score": 0.030003199872528113,
       "risk_label": "RISKY",
       "rv_5d": 0.44285072689254634,
       "sector": "Financials",
       "ticker": "JPM",
       "ts_score": -0.052984864570089434,
-      "vol_risk_score": 0.7916680686095839,
+      "vol_risk_score": 0.7916686693113428,
       "what_changes": "Fused confidence below 0.50, adverse gap beyond +1.6%, or negative catalyst escalation.",
       "why": "5d realized vol 44.3%, ATR 5.9%, liquidity $1.80B, factor -24437246.74, time-series -0.05, news catalyst company news. JPM sees notable volume and momentum into the session",
-      "xsec_score": -24437246.73553636
+      "xsec_score": -24437246.735536307
     }
   ],
   "watchlist": [
@@ -917,7 +917,7 @@
       "fused_confidence": 0.9999999979388463,
       "hold_horizon": "3-10 days",
       "invalidation_text": "Close below 156.82 (about 2.0x ATR below reference).",
-      "opportunity_score": 0.5282633245642004,
+      "opportunity_score": 0.5282633381201806,
       "risk_label": "RISKY",
       "sector": "Technology",
       "ticker": "AAPL",
@@ -977,7 +977,7 @@
       "fused_confidence": 0.9999999979388463,
       "hold_horizon": "3-10 days",
       "invalidation_text": "Close below 22.94 (about 2.0x ATR below reference).",
-      "opportunity_score": 0.4632468546455412,
+      "opportunity_score": 0.4632559806262275,
       "risk_label": "RISKY",
       "sector": "Technology",
       "ticker": "PLTR",
